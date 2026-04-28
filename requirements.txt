@@ -1,0 +1,2 @@
+protobuf>=6.33.0
+PyOgg>=0.6.14a1
