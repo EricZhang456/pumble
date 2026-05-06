@@ -57,7 +57,7 @@ class MumbleClient:
 
     def run(self,
             host: str, port: int=64738, *,
-            timeout: float=20.0, ignore_tls_cert: bool=False, as_bot: bool=False,
+            timeout: float=60.0, ignore_tls_cert: bool=False, as_bot: bool=False,
             version: MumbleVersion | None=None, release_name: str | None=None):
         asyncio.run(self.connect(host, port, timeout=timeout, ignore_tls_cert=ignore_tls_cert,
                                        as_bot=as_bot, version=version, release_name=release_name))
@@ -81,7 +81,7 @@ class MumbleClient:
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
         conn_reader, conn_writer = await asyncio.open_connection(
-            host, port, ssl=ssl_context
+            host, port, ssl=ssl_context, ssl_handshake_timeout=timeout
         )
         self._tcp_connection = MumbleTCPConnection(conn_reader, conn_writer)
 
