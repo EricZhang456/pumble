@@ -28,6 +28,7 @@ class MumbleClient:
         self.password = password
         self.tokens = tokens
         self.server_version_info: MumbleVersionInfo | None = None
+
         self._tcp_packets_received = 0
         self._connected = False
         self._server_sync_completed = False
@@ -54,18 +55,18 @@ class MumbleClient:
         self._channel_mamnager.clear_channels()
 
 
-    def connect(self,
-                host: str, port: int=64738, *,
-                timeout: float=20.0, ignore_tls_cert: bool=False, as_bot: bool=False,
-                version: MumbleVersion | None=None, release_name: str | None=None):
-        asyncio.run(self._dial(host, port, timeout=timeout, ignore_tls_cert=ignore_tls_cert,
+    def run(self,
+            host: str, port: int=64738, *,
+            timeout: float=20.0, ignore_tls_cert: bool=False, as_bot: bool=False,
+            version: MumbleVersion | None=None, release_name: str | None=None):
+        asyncio.run(self.connect(host, port, timeout=timeout, ignore_tls_cert=ignore_tls_cert,
                                        as_bot=as_bot, version=version, release_name=release_name))
 
 
-    async def _dial(self,
-                    host: str, port: int=64738, *,
-                    timeout: float=20.0, ignore_tls_cert: bool=False, as_bot: bool=False,
-                    version: MumbleVersion | None=None, release_name: str | None=None):
+    async def connect(self,
+                      host: str, port: int=64738, *,
+                      timeout: float=20.0, ignore_tls_cert: bool=False, as_bot: bool=False,
+                      version: MumbleVersion | None=None, release_name: str | None=None):
         self._clear_server_fields()
 
         if version is None:
