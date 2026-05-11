@@ -3,7 +3,8 @@ from enum import Enum
 
 from google.protobuf.message import Message
 
-from ._proto import Mumble_pb2
+from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
+
 
 class MumblePacketType(Enum):
     """Types of Mumble packets."""

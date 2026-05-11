@@ -1,2 +1,3 @@
 [MASTER]
 prefer-stubs=yes
+disable=line-too-long

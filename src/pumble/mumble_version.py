@@ -82,9 +82,8 @@ class MumbleVersionInfo:
         self.os_version = os_version
 
 
-    # pylint: disable=line-too-long
     def __repr__(self):
-        return f"MumbleVersionInfo({repr(self.version)}, {self.release}, {self.os}, {self.os_version})"
+        return f"MumbleVersionInfo({repr(self.version)}, \"{self.release}\", \"{self.os}\", \"{self.os_version}\")"
 
 
     def __eq__(self, other):

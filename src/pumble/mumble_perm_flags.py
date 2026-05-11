@@ -1,6 +1,7 @@
 from enum import IntFlag
 
 
+# https://github.com/mumble-voip/mumble/blob/ea64b1246f3f020172fa9fbcda94f2c8ed0810de/src/ACL.h#L21-L46
 class MumblePerms(IntFlag):
     NONE = 0x0
     WRITE = 0x1
