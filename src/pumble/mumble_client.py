@@ -212,12 +212,14 @@ class MumbleClient:
             self._tcp_packets_received += 1
             match packet_type:
                 case MumblePacketType.VERSION:
-                    server_message_msg = Mumble_pb2.Version()
-                    server_message_msg.ParseFromString(packet_bytes)
-                    server_version = MumbleVersion.from_version_int(server_message_msg.version_v2)
-                    server_version_info = MumbleVersionInfo(server_version, server_message_msg.release,
-                                                            server_message_msg.os,
-                                                            server_message_msg.os_version)
+                    server_version_msg = Mumble_pb2.Version()
+                    server_version_msg.ParseFromString(packet_bytes)
+                    server_version_info = MumbleVersionInfo(
+                        version=MumbleVersion.from_version_int(server_version_msg.version_v2),
+                        release=server_version_msg.release,
+                        os=server_version_msg.os,
+                        os_version=server_version_msg.os_version
+                    )
                     # other fields come later
                     self._server_info = MumbleServerInfo(version_info=server_version_info)
                 case MumblePacketType.CRYPT_SETUP:

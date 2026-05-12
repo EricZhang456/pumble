@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class MumbleVersionLegacy:
     def __init__(self, major: int, minor: int, patch: int):
         self.major = major
@@ -74,22 +77,9 @@ class MumbleVersion:
         return False
 
 
+@dataclass
 class MumbleVersionInfo:
-    def __init__(self, version: MumbleVersion, release: str, os: str, os_version: str):
-        self.version = version
-        self.release = release
-        self.os = os
-        self.os_version = os_version
-
-
-    def __repr__(self):
-        return f"MumbleVersionInfo({repr(self.version)}, \"{self.release}\", \"{self.os}\", \"{self.os_version}\")"
-
-
-    def __eq__(self, other):
-        if isinstance(other, MumbleVersionInfo):
-            return (self.version == other.version and
-                    self.release == other.release and
-                    self.os == other.os and
-                    self.os_version == other.os_version)
-        return False
+    version: MumbleVersion
+    release: str
+    os: str
+    os_version: str
