@@ -168,6 +168,7 @@ class MumbleClient:
             for param in func_required_params.values():
                 if param.kind is param.KEYWORD_ONLY:
                     raise ValueError("Callback function only accepts keyword parameters")
+            self._listeners[event_name].append(func)
             return func
         return decorator
 
@@ -206,6 +207,7 @@ class MumbleClient:
                 traceback.print_exc()
 
 
+    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     async def _read_packet_loop(self):
         while self._connected:
             packet_type, packet_bytes = await self._tcp_connection.read_packet()
