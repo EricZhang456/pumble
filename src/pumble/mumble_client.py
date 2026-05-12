@@ -13,13 +13,13 @@ from ._internal.func_utils import get_required_params_for_func
 from ._internal.mumble_crypt_info import MumbleCryptInfo
 from ._internal.mumble_channel_manager import MumbleChannelManager
 from ._internal.mumble_user_manager import MumbleUserManager
+from ._internal.mumble_tcp_connection import MumbleTCPConnection
 from .mumble_perm_flags import MumblePerms
 from .mumble_events import (MumbleReadyEvent, MumbleChannelRemoveEvent, MumbleUserUpdateEvent,
                             MumbleUserRemoveEvent)
 from .mumble_packet_type import MumblePacketType
-from .mumble_version import MumbleVersion, MumbleVersionInfo
+from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo
 from .mumble_server_info import MumbleServerInfo
-from .mumble_tcp_connection import MumbleTCPConnection
 from .mumble_channel import MumbleChannel
 
 
@@ -100,7 +100,7 @@ class MumbleClient:
     def run(self,
             host: str, port: int=64738, *,
             timeout: float=60.0, ignore_tls_cert: bool=False, as_bot: bool=False,
-            version: MumbleVersion | None=None, release_name: str | None=None):
+            version: AbstractMumbleVersion | None=None, release_name: str | None=None):
         async def loop():
             await self.connect(host, port, timeout=timeout,
                                ignore_tls_cert=ignore_tls_cert, as_bot=as_bot,
@@ -111,7 +111,7 @@ class MumbleClient:
     async def connect(self,
                       host: str, port: int=64738, *,
                       timeout: float=20.0, ignore_tls_cert: bool=False, as_bot: bool=False,
-                      version: MumbleVersion | None=None, release_name: str | None=None):
+                      version: AbstractMumbleVersion | None=None, release_name: str | None=None):
         self._clear_server_fields()
 
         if version is None:
@@ -131,7 +131,11 @@ class MumbleClient:
         self._tcp_connection = MumbleTCPConnection(conn_reader, conn_writer)
 
         version_message = Mumble_pb2.Version()
-        version_message.version_v2 = version.to_version_int()
+        if isinstance(version, MumbleVersion):
+            version_message.version_v2 = version.to_version_int()
+            version_message.version_v1 = version.to_legacy_version().to_version_int()
+        else:
+            version_message.version_v1 = version.to_version_int()
         version_message.release = release_name
         version_message.os = platform.system()
         version_message.os_version = platform.release()

@@ -1,7 +1,20 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 
-class MumbleVersionLegacy:
+class AbstractMumbleVersion(ABC):
+    @abstractmethod
+    def to_version_int(self) -> int:
+        pass
+
+
+    @classmethod
+    @abstractmethod
+    def from_version_int(cls, value: int):
+        pass
+
+
+class MumbleVersionLegacy(AbstractMumbleVersion):
     def __init__(self, major: int, minor: int, patch: int):
         self.major = major
         self.minor = minor
@@ -36,7 +49,7 @@ class MumbleVersionLegacy:
         return False
 
 
-class MumbleVersion:
+class MumbleVersion(AbstractMumbleVersion):
     def __init__(self, major: int, minor: int, patch: int, build: int):
         self.major = major
         self.minor = minor
@@ -58,6 +71,14 @@ class MumbleVersion:
         patch = (value >> 16) & 0xFFFF
         build = value & 0xFFFF
         return cls(major, minor, patch, build)
+
+
+    def to_legacy_version(self) -> MumbleVersionLegacy:
+        return MumbleVersionLegacy(
+            major=self.major,
+            minor=self.minor,
+            patch=self.patch
+        )
 
 
     def __str__(self):
