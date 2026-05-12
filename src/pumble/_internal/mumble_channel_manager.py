@@ -31,15 +31,11 @@ class MumbleChannelManager:
                 entry.linked_channels.extend(channel_state_msg.links)
             if channel_state_msg.description:
                 entry.description = channel_state_msg.description
-            if channel_state_msg.description_hash:
-                entry.description_hash = channel_state_msg.description_hash
             self._channels.append(entry)
         else:
             entry.name = channel_state_msg.name
             if channel_state_msg.description:
                 entry.description = channel_state_msg.description
-            if channel_state_msg.description_hash:
-                entry.description_hash = channel_state_msg.description_hash
             entry.position = channel_state_msg.position
             entry.parent_channel = channel_state_msg.parent
             for i in channel_state_msg.links_add:
