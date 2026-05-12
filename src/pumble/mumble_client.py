@@ -24,7 +24,7 @@ from .mumble_channel import MumbleChannel
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",
-                                 "user_update", "user_remove"]
+                                 "user_update", "user_remove", "user_connect"]
 _VALID_EVENTS = get_args(MumbleEvent)
 
 
@@ -210,6 +210,7 @@ class MumbleClient:
         while self._connected:
             packet_type, packet_bytes = await self._tcp_connection.read_packet()
             self._tcp_packets_received += 1
+            # TODO: Fetch description for channels, avatar/comment for users in hash only scenarios
             match packet_type:
                 case MumblePacketType.VERSION:
                     server_version_msg = Mumble_pb2.Version()
@@ -266,12 +267,15 @@ class MumbleClient:
                 case MumblePacketType.USER_STATE:
                     user_state_msg = Mumble_pb2.UserState()
                     user_state_msg.ParseFromString(packet_bytes)
-                    user_entry = self._user_manager.update_user_info(user_state_msg)
+                    user_entry, new_user_entry = self._user_manager.update_user_info(user_state_msg)
                     if self._server_sync_completed:
-                        await self._emit_event("user_update", MumbleUserUpdateEvent(
-                            user=user_entry,
-                            actor=user_state_msg.actor
-                        ))
+                        if new_user_entry:
+                            await self._emit_event("user_connect", user_entry)
+                        else:
+                            await self._emit_event("user_update", MumbleUserUpdateEvent(
+                                user=user_entry,
+                                actor=user_state_msg.actor
+                            ))
                 case MumblePacketType.USER_REMOVE:
                     user_remove_msg = Mumble_pb2.UserRemove()
                     user_remove_msg.ParseFromString(packet_bytes)

@@ -12,7 +12,7 @@ class MumbleUserManager:
         return self._users
 
 
-    def update_user_info(self, user_state_msg: Mumble_pb2.UserState) -> MumbleUser:
+    def update_user_info(self, user_state_msg: Mumble_pb2.UserState) -> tuple[MumbleUser, bool]:
         entry = None
         existing_entry_idx = None
         for index, item in enumerate(self._users):
@@ -20,7 +20,8 @@ class MumbleUserManager:
                 entry = item
                 existing_entry_idx = index
                 break
-        if existing_entry_idx is None:
+        new_entry = existing_entry_idx is None
+        if new_entry:
             entry = MumbleUser(
                 session_id=user_state_msg.session,
                 name=user_state_msg.name,
@@ -62,7 +63,7 @@ class MumbleUserManager:
                 if k in entry.listening_channels:
                     entry.listening_channels.remove(k)
             self._users[existing_entry_idx] = entry
-        return entry
+        return entry, new_entry
 
 
     def remove_user(self, session_id: int):

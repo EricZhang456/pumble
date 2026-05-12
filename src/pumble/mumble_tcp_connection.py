@@ -15,8 +15,6 @@ class MumbleTCPConnection:
     async def read_packet(self) -> tuple[MumblePacketType, bytes]:
         header = await self.reader.readexactly(6)
         packet_type, packet_len = struct.unpack(">HI", header)
-        if packet_type != 1:
-            print(packet_type)
         data = await self.reader.readexactly(packet_len)
         return MumblePacketType(packet_type), data
 
