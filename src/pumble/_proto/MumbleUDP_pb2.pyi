@@ -7,7 +7,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Audio(_message.Message):
-    __slots__ = ()
+    __slots__ = ("target", "context", "sender_session", "frame_number", "opus_data", "positional_data", "volume_adjustment", "is_terminator")
     TARGET_FIELD_NUMBER: _ClassVar[int]
     CONTEXT_FIELD_NUMBER: _ClassVar[int]
     SENDER_SESSION_FIELD_NUMBER: _ClassVar[int]
@@ -27,7 +27,7 @@ class Audio(_message.Message):
     def __init__(self, target: _Optional[int] = ..., context: _Optional[int] = ..., sender_session: _Optional[int] = ..., frame_number: _Optional[int] = ..., opus_data: _Optional[bytes] = ..., positional_data: _Optional[_Iterable[float]] = ..., volume_adjustment: _Optional[float] = ..., is_terminator: _Optional[bool] = ...) -> None: ...
 
 class Ping(_message.Message):
-    __slots__ = ()
+    __slots__ = ("timestamp", "request_extended_information", "server_version_v2", "user_count", "max_user_count", "max_bandwidth_per_user")
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     REQUEST_EXTENDED_INFORMATION_FIELD_NUMBER: _ClassVar[int]
     SERVER_VERSION_V2_FIELD_NUMBER: _ClassVar[int]
