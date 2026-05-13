@@ -41,6 +41,7 @@ class MumbleUserManager:
                 entry.registered_user_id = user_state_msg.user_id
             if user_state_msg.listening_channel_add:
                 entry.listening_channels.extend(user_state_msg.listening_channel_add)
+            self._users.append(entry)
         else:
             entry.name = user_state_msg.name
             entry.mute = user_state_msg.mute
