@@ -1,20 +1,32 @@
+"""Mumble version classes."""
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 
 class AbstractMumbleVersion(ABC):
+    """Mumble version interface."""
     @abstractmethod
     def to_version_int(self) -> int:
-        pass
+        """Converts Mumble version to an integer
+
+        :return: The Mumble version as an integer form. Can be uint64 or uint32.
+        :rtype: int
+        """
 
 
     @classmethod
     @abstractmethod
     def from_version_int(cls, value: int):
-        pass
+        """Converts a Mumble version in integer form back to the Mumble version object.
+
+        :param value: The Mumble version in integer form.
+        :type value: int
+        """
 
 
 class MumbleVersionLegacy(AbstractMumbleVersion):
+    """Legacy Mumble version. :meth:`to_version_int` returns an uint32."""
     def __init__(self, major: int, minor: int, patch: int):
         self.major = major
         self.minor = minor
@@ -50,6 +62,7 @@ class MumbleVersionLegacy(AbstractMumbleVersion):
 
 
 class MumbleVersion(AbstractMumbleVersion):
+    """Modern Mumble version. :meth:`to_version_int` returns an uint64."""
     def __init__(self, major: int, minor: int, patch: int, build: int):
         self.major = major
         self.minor = minor
@@ -74,6 +87,7 @@ class MumbleVersion(AbstractMumbleVersion):
 
 
     def to_legacy_version(self) -> MumbleVersionLegacy:
+        """Converts the modern Mumble version to a legacy Mumble version."""
         return MumbleVersionLegacy(
             major=self.major,
             minor=self.minor,
@@ -100,6 +114,7 @@ class MumbleVersion(AbstractMumbleVersion):
 
 @dataclass
 class MumbleVersionInfo:
+    """Information about a Mumble version."""
     version: MumbleVersion
     release: str
     os: str
