@@ -6,7 +6,7 @@ import inspect
 import traceback
 from statistics import variance
 from collections.abc import Iterable, Callable
-from typing import Literal, TypeAlias, get_args
+from typing import Literal, TypeAlias, List, get_args
 
 from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 from ._internal.func_utils import get_required_params_for_func
@@ -21,6 +21,7 @@ from .mumble_packet_type import MumblePacketType
 from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo
 from .mumble_server_info import MumbleServerInfo
 from .mumble_channel import MumbleChannel
+from .mumble_user import MumbleUser
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",
@@ -55,22 +56,22 @@ class MumbleClient:
 
 
     @property
-    def channels(self):
+    def channels(self) -> List[MumbleChannel]:
         return self._channel_mamnager.channels
 
 
     @property
-    def users(self):
+    def users(self) -> List[MumbleUser]:
         return self._user_manager.users
 
 
     @property
-    def server_info(self):
+    def server_info(self) -> MumbleServerInfo | None:
         return self._server_info
 
 
     @property
-    def session_id(self):
+    def session_id(self) -> int | None:
         return self._session_id
 
 
