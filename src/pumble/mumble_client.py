@@ -120,7 +120,7 @@ class MumbleClient:
         if release_name is None:
             release_name = "Pumble"
 
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ssl_context.minimum_version = ssl.TLSVersion.TLSv1
         ssl_context.set_ciphers("AES256-SHA")
         if ignore_tls_cert:
