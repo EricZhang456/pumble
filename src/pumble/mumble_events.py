@@ -1,6 +1,8 @@
+import asyncio
 from typing import Optional
 from dataclasses import dataclass
 
+from .mumble_audio_msgs import MumbleAudioPacket
 from .mumble_user import MumbleUser
 from .mumble_server_info import MumbleServerInfo
 
@@ -28,3 +30,9 @@ class MumbleUserRemoveEvent:
     actor: int
     ban: bool
     reason: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class MumbleAudioStreamEvent:
+    user: MumbleUser
+    stream: asyncio.Queue[MumbleAudioPacket]

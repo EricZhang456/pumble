@@ -35,6 +35,7 @@ class MumblePacketType(Enum):
     SERVER_CONFIG = 24
     SUGGEST_CONFIG = 25
 
+
 def get_mumble_packet_type_from_proto(message: Message) -> MumblePacketType:
     """Gets the Mumble packet type from a Mumble Protobuf message.
 

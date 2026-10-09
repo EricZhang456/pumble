@@ -1,10 +1,29 @@
+import warnings
+import asyncio
+
+from ..mumble_audio_msgs import MumbleAudioPacket, MumbleAudioTarget, Position
 from ..mumble_user import MumbleUser
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
+
+
+class AudioQueue:
+    def __init__(self):
+        self.queue: asyncio.Queue[MumbleAudioPacket] = asyncio.Queue()
+        self._lock: asyncio.Lock = asyncio.Lock()
+
+
+    async def add_audio(self, packet: MumbleAudioPacket, sequence: int): # pylint: disable=unused-argument
+        # TODO: Make use of sequence
+        async with self._lock:
+            await self.queue.put(packet)
+            await self.queue.put(None)
 
 
 class MumbleUserManager:
     def __init__(self):
         self._users: list[MumbleUser] = []
+        # key is session id
+        self._audio_queues: dict[int, AudioQueue] = {}
 
 
     @property
@@ -72,7 +91,35 @@ class MumbleUserManager:
             if item.session_id == session_id:
                 self._users.pop(index)
                 break
+        try:
+            self._audio_queues.pop(session_id)
+        except KeyError:
+            pass
+
+
+    async def put_audio(self, session_id: int, audio: bytes, sequence: int, target: int, position: Position | None = None):
+        session_audio_queue = self._audio_queues.get(session_id)
+        if session_audio_queue is None:
+            session_audio_queue = AudioQueue()
+            self._audio_queues[session_id] = session_audio_queue
+        audio_target = MumbleAudioTarget(target)
+        user: MumbleUser | None = None
+        for item in self._users:
+            if item.session_id == session_id:
+                user = item
+                break
+        if user is None:
+            raise RuntimeError(f"Cannot find user for session_id: {session_id}")
+        audio_packet = MumbleAudioPacket(
+            sender=user,
+            target=audio_target,
+            data=audio,
+            position=position
+        )
+        await session_audio_queue.add_audio(audio_packet, sequence)
+        return user, session_audio_queue.queue
 
 
     def clear_users(self):
+        self._audio_queues = {}
         self._users = []

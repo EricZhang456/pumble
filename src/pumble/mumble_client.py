@@ -14,9 +14,10 @@ from ._internal.mumble_crypt_info import MumbleCryptInfo
 from ._internal.mumble_channel_manager import MumbleChannelManager
 from ._internal.mumble_user_manager import MumbleUserManager
 from ._internal.mumble_tcp_connection import MumbleTCPConnection
+from ._internal.mumble_audio_handler import MumbleAudioHandler
 from .mumble_perm_flags import MumblePerms
 from .mumble_events import (MumbleReadyEvent, MumbleChannelRemoveEvent, MumbleUserUpdateEvent,
-                            MumbleUserRemoveEvent)
+                            MumbleUserRemoveEvent, MumbleAudioStreamEvent)
 from .mumble_packet_type import MumblePacketType
 from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo
 from .mumble_server_info import MumbleServerInfo
@@ -25,7 +26,7 @@ from .mumble_user import MumbleUser
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",
-                                 "user_update", "user_remove", "user_connect"]
+                                 "user_update", "user_remove", "user_connect", "audio_stream"]
 _VALID_EVENTS = get_args(MumbleEvent)
 
 
@@ -53,6 +54,7 @@ class MumbleClient:
         self._listeners: dict[str, list[Callable]] = {}
         self._channel_mamnager = MumbleChannelManager()
         self._user_manager = MumbleUserManager()
+        self._audio_handler = MumbleAudioHandler(self._user_manager)
 
 
     @property
@@ -129,6 +131,7 @@ class MumbleClient:
         conn_reader, conn_writer = await asyncio.open_connection(
             host, port, ssl=ssl_context, ssl_handshake_timeout=timeout
         )
+        # TODO: Set up UDP connection
         self._tcp_connection = MumbleTCPConnection(conn_reader, conn_writer)
 
         version_message = Mumble_pb2.Version()
@@ -218,7 +221,17 @@ class MumbleClient:
             packet_type, packet_bytes = await self._tcp_connection.read_packet()
             self._tcp_packets_received += 1
             # TODO: Fetch description for channels, avatar/comment for users in hash only scenarios
+            # ^ probably make a method to fetch those instead
             match packet_type:
+                case MumblePacketType.UDP_TUNNEL:
+                    audio_data = await self._audio_handler.read_audio(packet_bytes)
+                    if audio_data is None:
+                        return
+                    stream_event = MumbleAudioStreamEvent(
+                        user=audio_data[0],
+                        stream=audio_data[1]
+                    )
+                    self._emit_event("audio_stream", stream_event)
                 case MumblePacketType.VERSION:
                     server_version_msg = Mumble_pb2.Version()
                     server_version_msg.ParseFromString(packet_bytes)
