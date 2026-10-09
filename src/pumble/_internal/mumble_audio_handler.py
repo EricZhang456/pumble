@@ -4,6 +4,7 @@ import warnings
 import struct
 
 from pyogg import OpusDecoder, OpusEncoder # pylint: disable=no-name-in-module
+from pyogg.pyogg_error import PyOggError
 
 from .varint import VarInt
 from .mumble_user_manager import MumbleUserManager
@@ -22,6 +23,7 @@ class MumbleAudioHandler:
         pos = 0
 
         (header,) = struct.unpack("!B", bytes([message[pos]]))
+        print(f"{header:#b}")
 
         msg_type = AudioMessageType((header & 0b11100000) >> 5)
         if msg_type == AudioMessageType.PING:
@@ -62,7 +64,10 @@ class MumbleAudioHandler:
 
             if size > 0:
                 decoded_audio = memoryview(bytearray(message[pos:pos + size]))
-                self._decoder.decode(decoded_audio)
+                try:
+                    self._decoder.decode(decoded_audio)
+                except PyOggError:
+                    warnings.warn("An error occurred when decoding audio")
                 # TODO: Handle position
                 position = None
                 return await self._user_manager.put_audio(session.value, decoded_audio, sequence.value, target, position)

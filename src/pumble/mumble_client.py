@@ -8,7 +8,7 @@ from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
 
-from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
+from ._proto import Mumble_pb2, MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from ._internal.func_utils import get_required_params_for_func
 from ._internal.mumble_crypt_info import MumbleCryptInfo
 from ._internal.mumble_channel_manager import MumbleChannelManager
@@ -231,7 +231,7 @@ class MumbleClient:
                         user=audio_data[0],
                         stream=audio_data[1]
                     )
-                    self._emit_event("audio_stream", stream_event)
+                    await self._emit_event("audio_stream", stream_event)
                 case MumblePacketType.VERSION:
                     server_version_msg = Mumble_pb2.Version()
                     server_version_msg.ParseFromString(packet_bytes)
