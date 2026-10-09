@@ -44,7 +44,7 @@ class MumbleAudioHandler:
         # the following comes from pymumble
         terminator = False  # set to true if it's the last 10 ms audio frame for the packet (used with CELT codec)
         while (pos < len(message)) and not terminator:  # get the audio frames one by one
-            if type == AudioMessageType.OPUS:
+            if msg_type == AudioMessageType.OPUS:
                 size = VarInt()  # OPUS use varint for the frame length
 
                 pos += size.decode(message[pos:pos + 10])
@@ -62,9 +62,9 @@ class MumbleAudioHandler:
                 pos += 1
 
             if size > 0:
-                decoded_audio = memoryview(bytearray(message[pos:pos + size]))
+                audio_mut = memoryview(bytearray(message[pos:pos + size]))
                 try:
-                    self._decoder.decode(decoded_audio)
+                    decoded_audio = bytes(self._decoder.decode(audio_mut))
                 except PyOggError:
                     warnings.warn("An error occurred when decoding audio")
                     return None
