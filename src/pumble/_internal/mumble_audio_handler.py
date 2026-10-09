@@ -23,7 +23,6 @@ class MumbleAudioHandler:
         pos = 0
 
         (header,) = struct.unpack("!B", bytes([message[pos]]))
-        print(f"{header:#b}")
 
         msg_type = AudioMessageType((header & 0b11100000) >> 5)
         if msg_type == AudioMessageType.PING:
@@ -68,6 +67,7 @@ class MumbleAudioHandler:
                     self._decoder.decode(decoded_audio)
                 except PyOggError:
                     warnings.warn("An error occurred when decoding audio")
+                    return None
                 # TODO: Handle position
                 position = None
                 return await self._user_manager.put_audio(session.value, decoded_audio, sequence.value, target, position)
