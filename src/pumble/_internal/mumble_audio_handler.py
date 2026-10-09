@@ -1,5 +1,7 @@
 # A lot of this comes from pymumble
 
+# TODO: Handle the new audio messages, currently needs to set Mumble version to 1.4.0 for this to work
+
 import warnings
 import struct
 
