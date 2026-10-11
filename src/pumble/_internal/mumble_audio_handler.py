@@ -65,7 +65,7 @@ class MumbleAudioHandler:
                 except PyOggError:
                     warnings.warn("An error occurred when decoding audio")
                     return None
-                return await self._user_manager.put_audio(
+                ret = await self._user_manager.put_audio(
                     session_id=session,
                     audio=decoded_audio,
                     sequence=sequence,
@@ -73,6 +73,10 @@ class MumbleAudioHandler:
                     position=position,
                     volume=volume
                 )
+                print(audio_message)
+                if audio_message.is_terminator:
+                    await self._user_manager.end_audio(session_id=session, sequence=sequence)
+                return ret
 
 
     async def _read_audio_legacy(self, message: bytes):
@@ -126,10 +130,13 @@ class MumbleAudioHandler:
                     return None
                 # TODO: Handle position
                 position = None
-                return await self._user_manager.put_audio(
+                ret = await self._user_manager.put_audio(
                     session_id=session.value,
                     audio=decoded_audio,
                     sequence=sequence.value,
                     target=target,
                     position=position
                 )
+                if terminator:
+                    await self._user_manager.end_audio(session_id=session, sequence=sequence.value)
+                return ret

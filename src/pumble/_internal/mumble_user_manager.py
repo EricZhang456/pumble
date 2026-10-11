@@ -12,11 +12,10 @@ class AudioQueue:
         self._lock: asyncio.Lock = asyncio.Lock()
 
 
-    async def add_audio(self, packet: MumbleAudioPacket, sequence: int): # pylint: disable=unused-argument
+    async def add_audio(self, packet: MumbleAudioPacket | None, sequence: int): # pylint: disable=unused-argument
         # TODO: Make use of sequence
         async with self._lock:
             await self.queue.put(packet)
-            await self.queue.put(None)
 
 
 class MumbleUserManager:
@@ -123,6 +122,14 @@ class MumbleUserManager:
         )
         await session_audio_queue.add_audio(audio_packet, sequence)
         return user, session_audio_queue.queue
+
+
+    async def end_audio(self, session_id: int, sequence: int):
+        session_audio_queue = self._audio_queues.get(session_id)
+        if session_audio_queue is None:
+            session_audio_queue = AudioQueue()
+            self._audio_queues[session_id] = session_audio_queue
+        await session_audio_queue.add_audio(None, sequence)
 
 
     def clear_users(self):
