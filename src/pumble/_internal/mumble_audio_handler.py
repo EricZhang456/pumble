@@ -73,10 +73,10 @@ class MumbleAudioHandler:
                     position=position,
                     volume=volume
                 )
-                print(audio_message)
-                if audio_message.is_terminator:
+                is_terminator = audio_message.is_terminator
+                if is_terminator:
                     await self._user_manager.end_audio(session_id=session, sequence=sequence)
-                return ret
+                return *ret, is_terminator
 
 
     async def _read_audio_legacy(self, message: bytes):
@@ -139,4 +139,4 @@ class MumbleAudioHandler:
                 )
                 if terminator:
                     await self._user_manager.end_audio(session_id=session, sequence=sequence.value)
-                return ret
+                return *ret, terminator

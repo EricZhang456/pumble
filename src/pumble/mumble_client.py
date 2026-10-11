@@ -56,6 +56,7 @@ class MumbleClient:
         self._channel_mamnager = MumbleChannelManager()
         self._user_manager = MumbleUserManager()
         self._audio_handler = MumbleAudioHandler(self._user_manager)
+        self._active_audio_streams: dict[int, asyncio.Queue] = {}
 
 
     @property
@@ -101,6 +102,7 @@ class MumbleClient:
         self._channel_mamnager.clear_channels()
         self._user_manager.clear_users()
         self._audio_handler.use_protobuf_audio(False)
+        self._active_audio_streams = {}
 
 
     def run(self,
@@ -213,7 +215,7 @@ class MumbleClient:
 
             try:
                 if inspect.iscoroutinefunction(listener):
-                    await listener(*call_args, **call_kwargs)
+                    asyncio.create_task(listener(*call_args, **call_kwargs))
                 else:
                     await asyncio.to_thread(listener, *call_args, **call_kwargs)
             # pylint: disable=bare-except
@@ -233,11 +235,14 @@ class MumbleClient:
                     audio_data = await self._audio_handler.read_audio(packet_bytes)
                     if audio_data is None:
                         return
-                    stream_event = MumbleAudioStreamEvent(
-                        user=audio_data[0],
-                        stream=audio_data[1]
-                    )
-                    await self._emit_event("audio_stream", stream_event)
+                    user, queue, terminator = audio_data
+                    session_id = user.session_id
+                    if session_id not in self._active_audio_streams:
+                        self._active_audio_streams[session_id] = queue
+                        stream_event = MumbleAudioStreamEvent(user=user, stream=queue)
+                        await self._emit_event("audio_stream", stream_event)
+                    if terminator:
+                        self._active_audio_streams.pop(session_id, None)
                 case MumblePacketType.VERSION:
                     server_version_msg = Mumble_pb2.Version()
                     server_version_msg.ParseFromString(packet_bytes)
