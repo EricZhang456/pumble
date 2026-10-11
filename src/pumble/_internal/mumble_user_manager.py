@@ -1,7 +1,7 @@
 import warnings
 import asyncio
 
-from ..mumble_audio_msgs import MumbleAudioPacket, MumbleAudioTarget, Position
+from ..mumble_audio_msgs import MumbleAudioPacket, MumbleAudioTarget, Position, ProtobufAudioTarget
 from ..mumble_user import MumbleUser
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 
@@ -97,12 +97,16 @@ class MumbleUserManager:
             pass
 
 
-    async def put_audio(self, session_id: int, audio: bytes, sequence: int, target: int, position: Position | None = None):
+    async def put_audio(self, session_id: int, audio: bytes, sequence: int, target: int | ProtobufAudioTarget,
+                        position: Position | None = None, volume: float | None = None):
         session_audio_queue = self._audio_queues.get(session_id)
         if session_audio_queue is None:
             session_audio_queue = AudioQueue()
             self._audio_queues[session_id] = session_audio_queue
-        audio_target = MumbleAudioTarget(target)
+        if isinstance(target, int):
+            audio_target = MumbleAudioTarget(target)
+        else:
+            audio_target = target
         user: MumbleUser | None = None
         for item in self._users:
             if item.session_id == session_id:
@@ -114,7 +118,8 @@ class MumbleUserManager:
             sender=user,
             target=audio_target,
             data=audio,
-            position=position
+            position=position,
+            volume=volume
         )
         await session_audio_queue.add_audio(audio_packet, sequence)
         return user, session_audio_queue.queue

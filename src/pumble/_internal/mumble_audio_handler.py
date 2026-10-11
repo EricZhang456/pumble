@@ -1,16 +1,16 @@
 # A lot of this comes from pymumble
 
-# TODO: Handle the new audio messages, currently needs to set Mumble version to 1.4.0 for this to work
-
 import warnings
 import struct
 
 from pyogg import OpusDecoder, OpusEncoder # pylint: disable=no-name-in-module
 from pyogg.pyogg_error import PyOggError
 
+from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
 from .mumble_user_manager import MumbleUserManager
-from .mumble_audio_message_type import AudioMessageType
+from .mumble_audio_message_type import AudioMessageType, ProtobufAudioMessageType
+from ..mumble_audio_msgs import ProtobufAudioTarget, Position
 
 
 class MumbleAudioHandler:
@@ -28,8 +28,51 @@ class MumbleAudioHandler:
 
     async def read_audio(self, message: bytes):
         if self._protobuf_audio:
-            raise NotImplementedError("Protobuf voice messages not implemented yet")
+            return await self._read_audio_protobuf(message)
         return await self._read_audio_legacy(message)
+
+
+    async def _read_audio_protobuf(self, message: bytes):
+        header = message[0]
+        header_type = ProtobufAudioMessageType(header)
+        match header_type:
+            case ProtobufAudioMessageType.PING:
+                return None
+            case ProtobufAudioMessageType.AUDIO:
+                audio_message = MumbleUDP_pb2.Audio()
+                audio_message.ParseFromString(message[1:])
+                set_header = audio_message.WhichOneof("Header")
+                if set_header == "target":
+                    warnings.warn("Received target header from server. This is unexpected.")
+                    target = ProtobufAudioTarget.NORMAL
+                else:
+                    target = ProtobufAudioTarget(audio_message.context)
+                session = audio_message.sender_session
+                sequence = audio_message.frame_number
+                position = None
+                if audio_message.positional_data:
+                    position = Position(
+                        x=audio_message.positional_data[0],
+                        y=audio_message.positional_data[1],
+                        z=audio_message.positional_data[2]
+                    )
+                volume = None
+                if audio_message.volume_adjustment:
+                    volume = audio_message.volume_adjustment
+                audio_mut = memoryview(bytearray(audio_message.opus_data))
+                try:
+                    decoded_audio = bytes(self._decoder.decode(audio_mut))
+                except PyOggError:
+                    warnings.warn("An error occurred when decoding audio")
+                    return None
+                return await self._user_manager.put_audio(
+                    session_id=session,
+                    audio=decoded_audio,
+                    sequence=sequence,
+                    target=target,
+                    position=position,
+                    volume=volume
+                )
 
 
     async def _read_audio_legacy(self, message: bytes):
@@ -83,4 +126,10 @@ class MumbleAudioHandler:
                     return None
                 # TODO: Handle position
                 position = None
-                return await self._user_manager.put_audio(session.value, decoded_audio, sequence.value, target, position)
+                return await self._user_manager.put_audio(
+                    session_id=session.value,
+                    audio=decoded_audio,
+                    sequence=sequence.value,
+                    target=target,
+                    position=position
+                )
