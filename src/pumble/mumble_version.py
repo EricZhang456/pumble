@@ -56,7 +56,7 @@ class MumbleVersionLegacy(AbstractMumbleVersion):
 
 
     def __eq__(self, other):
-        if isinstance(other, MumbleVersionLegacy):
+        if isinstance(other, (MumbleVersionLegacy, MumbleVersion)):
             return (self.major == other.major and
                     self.minor == other.minor and
                     self.patch == other.patch)
@@ -118,6 +118,10 @@ class MumbleVersion(AbstractMumbleVersion):
                     self.minor == other.minor and
                     self.patch == other.patch and
                     self.build == other.build)
+        if isinstance(other, MumbleVersionLegacy):
+            return (self.major == other.major and
+                    self.minor == other.minor and
+                    self.patch == other.patch)
         return False
 
 
