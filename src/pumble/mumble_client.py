@@ -8,7 +8,7 @@ from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
 
-from ._proto import Mumble_pb2, MumbleUDP_pb2 # pylint: disable=no-name-in-module
+from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 from ._internal.func_utils import get_required_params_for_func
 from ._internal.mumble_crypt_info import MumbleCryptInfo
 from ._internal.mumble_channel_manager import MumbleChannelManager
@@ -19,7 +19,7 @@ from .mumble_perm_flags import MumblePerms
 from .mumble_events import (MumbleReadyEvent, MumbleChannelRemoveEvent, MumbleUserUpdateEvent,
                             MumbleUserRemoveEvent, MumbleAudioStreamEvent)
 from .mumble_packet_type import MumblePacketType
-from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo
+from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
 from .mumble_server_info import MumbleServerInfo
 from .mumble_channel import MumbleChannel
 from .mumble_user import MumbleUser
@@ -52,6 +52,7 @@ class MumbleClient:
         self._ping_times: list[int] = []
         self._last_ping_time: datetime.datetime | None = None
         self._listeners: dict[str, list[Callable]] = {}
+        self._use_protobuf_voice_message = False
         self._channel_mamnager = MumbleChannelManager()
         self._user_manager = MumbleUserManager()
         self._audio_handler = MumbleAudioHandler(self._user_manager)
@@ -91,6 +92,7 @@ class MumbleClient:
         self._session_id = None
         self._connected = False
         self._server_sync_completed = False
+        self._use_protobuf_voice_message = False
         self._crypt_info = None
         self._last_ping_time = None
         self._current_channel_id = None
@@ -98,6 +100,7 @@ class MumbleClient:
         self._ping_times = []
         self._channel_mamnager.clear_channels()
         self._user_manager.clear_users()
+        self._audio_handler.use_protobuf_audio(False)
 
 
     def run(self,
@@ -138,8 +141,11 @@ class MumbleClient:
         if isinstance(version, MumbleVersion):
             version_message.version_v2 = version.to_version_int()
             version_message.version_v1 = version.to_legacy_version().to_version_int()
+            self._use_protobuf_voice_message = version >= MumbleVersion(1, 5, 0, 0)
         else:
             version_message.version_v1 = version.to_version_int()
+            self._use_protobuf_voice_message = version >= MumbleVersionLegacy(1, 5, 0)
+        self._audio_handler.use_protobuf_audio(self._use_protobuf_voice_message)
         version_message.release = release_name
         version_message.os = platform.system()
         version_message.os_version = platform.release()

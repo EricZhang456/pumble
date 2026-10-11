@@ -1,5 +1,6 @@
 """Mumble version classes."""
 
+from functools import total_ordering
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -25,6 +26,7 @@ class AbstractMumbleVersion(ABC):
         """
 
 
+@total_ordering
 class MumbleVersionLegacy(AbstractMumbleVersion):
     """Legacy Mumble version. :meth:`to_version_int` returns an uint32."""
     def __init__(self, major: int, minor: int, patch: int):
@@ -61,6 +63,13 @@ class MumbleVersionLegacy(AbstractMumbleVersion):
         return False
 
 
+    def __gt__(self, other):
+        if isinstance(other, (MumbleVersionLegacy, MumbleVersion)):
+            return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
+        return NotImplemented
+
+
+@total_ordering
 class MumbleVersion(AbstractMumbleVersion):
     """Modern Mumble version. :meth:`to_version_int` returns an uint64."""
     def __init__(self, major: int, minor: int, patch: int, build: int):
@@ -110,6 +119,14 @@ class MumbleVersion(AbstractMumbleVersion):
                     self.patch == other.patch and
                     self.build == other.build)
         return False
+
+
+    def __gt__(self, other):
+        if isinstance(other, MumbleVersion):
+            return (self.major, self.minor, self.patch, self.build) > (other.major, other.minor, other.patch, other.build)
+        if isinstance(other, MumbleVersionLegacy):
+            return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
+        return NotImplemented
 
 
 @dataclass

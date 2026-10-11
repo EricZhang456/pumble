@@ -19,9 +19,20 @@ class MumbleAudioHandler:
         self._decoder.set_sampling_frequency(48000)
         self._decoder.set_channels(1)
         self._user_manager = user_manager
+        self._protobuf_audio = False
+
+
+    def use_protobuf_audio(self, value: bool):
+        self._protobuf_audio = value
 
 
     async def read_audio(self, message: bytes):
+        if self._protobuf_audio:
+            raise NotImplementedError("Protobuf voice messages not implemented yet")
+        return await self._read_audio_legacy(message)
+
+
+    async def _read_audio_legacy(self, message: bytes):
         pos = 0
 
         (header,) = struct.unpack("!B", bytes([message[pos]]))
