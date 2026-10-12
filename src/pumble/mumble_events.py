@@ -35,4 +35,4 @@ class MumbleUserRemoveEvent:
 @dataclass(frozen=True)
 class MumbleAudioStreamEvent:
     user: MumbleUser
-    stream: asyncio.Queue[MumbleAudioPacket]
+    stream: asyncio.Queue[MumbleAudioPacket | None]

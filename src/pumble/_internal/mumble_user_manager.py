@@ -8,7 +8,7 @@ from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 
 class AudioQueue:
     def __init__(self):
-        self.queue: asyncio.Queue[MumbleAudioPacket] = asyncio.Queue()
+        self.queue: asyncio.Queue[MumbleAudioPacket | None] = asyncio.Queue()
         self._lock: asyncio.Lock = asyncio.Lock()
 
 
