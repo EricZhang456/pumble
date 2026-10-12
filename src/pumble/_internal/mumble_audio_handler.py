@@ -3,8 +3,8 @@
 import warnings
 import struct
 
-from pyogg import OpusDecoder, OpusEncoder # pylint: disable=no-name-in-module
-from pyogg.pyogg_error import PyOggError
+from opuslib import Decoder
+from opuslib.exceptions import OpusError
 
 from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
@@ -13,11 +13,12 @@ from .mumble_audio_message_type import AudioMessageType, ProtobufAudioMessageTyp
 from ..mumble_audio_msgs import ProtobufAudioTarget, Position
 
 
+_AUDIO_FRAME_SIZE = 4096
+
+
 class MumbleAudioHandler:
     def __init__(self, user_manager: MumbleUserManager):
-        self._decoder = OpusDecoder()
-        self._decoder.set_sampling_frequency(48000)
-        self._decoder.set_channels(1)
+        self._decoder = Decoder(fs=48000, channels=1)
         self._user_manager = user_manager
         self._protobuf_audio = False
 
@@ -59,10 +60,9 @@ class MumbleAudioHandler:
                 volume = None
                 if audio_message.volume_adjustment:
                     volume = audio_message.volume_adjustment
-                audio_mut = memoryview(bytearray(audio_message.opus_data))
                 try:
-                    decoded_audio = bytes(self._decoder.decode(audio_mut))
-                except PyOggError:
+                    decoded_audio = self._decoder.decode(audio_message.opus_data, _AUDIO_FRAME_SIZE)
+                except OpusError:
                     warnings.warn("An error occurred when decoding audio")
                     return None
                 ret = await self._user_manager.put_audio(
@@ -122,10 +122,9 @@ class MumbleAudioHandler:
                 pos += 1
 
             if size > 0:
-                audio_mut = memoryview(bytearray(message[pos:pos + size]))
                 try:
-                    decoded_audio = bytes(self._decoder.decode(audio_mut))
-                except PyOggError:
+                    decoded_audio = self._decoder.decode(message[pos:pos + size], _AUDIO_FRAME_SIZE)
+                except OpusError:
                     warnings.warn("An error occurred when decoding audio")
                     return None
                 # TODO: Handle position
