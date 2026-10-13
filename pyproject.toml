@@ -12,7 +12,7 @@ dependencies = [
     "pycryptodome>=3.23.0"
 ]
 description = "An asynchronous Mumble client library"
-license = "GPL-3.0-or-later"
+license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 keywords = ["mumble", "voip", "mumble client"]
 classifiers = [
