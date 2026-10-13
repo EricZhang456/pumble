@@ -88,6 +88,7 @@ class MumbleClient:
         for i in self.channels:
             if i.channel_id == self._current_channel_id:
                 return i
+        return None
 
 
     def _clear_server_fields(self):
