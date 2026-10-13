@@ -223,7 +223,7 @@ class MumbleClient:
                     await asyncio.to_thread(listener, *call_args, **call_kwargs)
             # pylint: disable=bare-except
             except:
-                traceback.print_exc()
+                logger.exception("An exception occurred when processing %s event listeners", event_name)
 
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
