@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pumble"
+version = "0.1"
+requires-python = ">= 3.10"
+dependencies = [
+    "protobuf>=7.34.1",
+    "opuslib>=3.0.1",
+    "pycryptodome>=3.23.0"
+]
+description = "An asynchronous Mumble client library"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["mumble", "voip", "mumble client"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Topic :: Communications :: Conferencing",
+    "Topic :: Communications :: Internet Phone",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15"
+]
