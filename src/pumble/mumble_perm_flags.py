@@ -1,4 +1,4 @@
-from enum import IntFlag
+from enum import IntFlag, Enum
 
 
 # https://github.com/mumble-voip/mumble/blob/ea64b1246f3f020172fa9fbcda94f2c8ed0810de/src/ACL.h#L21-L46
@@ -24,3 +24,20 @@ class Permission(IntFlag):
     RESET_USER_CONTENT = 0x100000
 
     CACHED = 0x8000000
+
+
+class DenyType(Enum):
+    TEXT = 0
+    PERMISSION = 1
+    SUPERUSER = 2
+    CHANNEL_NAME = 3
+    TEXT_TOO_LONG = 4
+    H9K = 5
+    TEMPORARY_CHANNEL = 6
+    MISSING_CERTIFICATE = 7
+    USER_NAME = 8
+    CHANNEL_FULL = 9
+    NESTING_LIMIT = 10
+    CHANNEL_COUNT_LIMIT = 11
+    CHANNEL_LISTENER_LIMIT = 12
+    USER_LISTENER_LIMIT = 13

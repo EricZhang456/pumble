@@ -2,6 +2,7 @@ import asyncio
 from typing import Optional
 from dataclasses import dataclass
 
+from .mumble_perm_flags import DenyType, Permission
 from .mumble_audio_msgs import AudioPacket
 from .mumble_user import User
 from .mumble_channel import Channel
@@ -40,9 +41,19 @@ class AudioStreamEvent:
 
 
 @dataclass(frozen=True)
-class MumbleTextMessageEvent:
+class TextMessageEvent:
     actor: User
     target: list[User] | None
     channels: list[Channel]
     tree: list[Channel] | None
     message: str
+
+
+@dataclass(frozen=True)
+class PermissionDeniedEvent:
+    permission: Permission | None
+    channel: Channel | None
+    user: User
+    reason: str
+    deny_type: DenyType
+    name: str | None

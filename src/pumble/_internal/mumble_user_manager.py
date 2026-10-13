@@ -1,4 +1,3 @@
-import warnings
 import asyncio
 
 from ..mumble_audio_msgs import AudioPacket, AudioTarget, Position, ProtobufAudioTarget

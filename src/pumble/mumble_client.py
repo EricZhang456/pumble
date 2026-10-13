@@ -4,7 +4,6 @@ import datetime
 import platform
 import inspect
 import traceback
-import warnings
 from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
@@ -17,9 +16,9 @@ from ._internal.mumble_channel_manager import ChannelManager
 from ._internal.mumble_user_manager import UserManager
 from ._internal.mumble_tcp_connection import TCPConnection
 from ._internal.mumble_audio_handler import AudioHandler
-from .mumble_perm_flags import Permission
-from .mumble_events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent,
-                            UserRemoveEvent, AudioStreamEvent, MumbleTextMessageEvent)
+from .mumble_perm_flags import Permission, DenyType
+from .mumble_events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
+                            AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
 from ._internal.mumble_packet_type import PacketType
 from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
 from .mumble_server_info import ServerInfo
@@ -28,7 +27,8 @@ from .mumble_user import User
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",
-                                 "user_update", "user_remove", "user_connect", "audio_stream"]
+                                 "user_update", "user_remove", "user_connect", "audio_stream",
+                                 "permission_denied"]
 _VALID_EVENTS = get_args(MumbleEvent)
 
 
@@ -286,6 +286,27 @@ class MumbleClient:
                     self._channel_mamnager.update_perms_for_channel(perm_query_msg.channel_id,
                                                                     perms,
                                                                     perm_query_msg.flush)
+                case PacketType.PERMISSION_DENIED:
+                    perm_denied_msg = Mumble_pb2.PermissionDenied()
+                    perm_denied_msg.ParseFromString(packet_bytes)
+                    deny_type = DenyType(perm_denied_msg.type)
+                    perms = None
+                    channel = None
+                    if deny_type == DenyType.PERMISSION:
+                        perms = Permission(perm_denied_msg.permission)
+                        channel = self._channel_mamnager.find_channel_by_channel_id(perm_denied_msg.channel_id)
+                    user = self._user_manager.find_user_by_session_id(perm_denied_msg.session)
+                    name = None
+                    if deny_type == DenyType.USER_NAME:
+                        name = perm_denied_msg.name
+                    await self._emit_event("permission_denied", PermissionDeniedEvent(
+                        permission=perms,
+                        channel=channel,
+                        user=user,
+                        reason=perm_denied_msg.reason,
+                        deny_type=deny_type,
+                        name=name
+                    ))
                 case PacketType.CHANNEL_STATE:
                     channel_state_msg = Mumble_pb2.ChannelState()
                     channel_state_msg.ParseFromString(packet_bytes)
@@ -348,7 +369,7 @@ class MumbleClient:
                         tree = []
                         for i in text_message_msg.tree_id:
                             tree.append(self._channel_mamnager.find_channel_by_channel_id(i))
-                    await self._emit_event("text_message", MumbleTextMessageEvent(
+                    await self._emit_event("text_message", TextMessageEvent(
                         actor=actor,
                         target=target,
                         channels=channels,

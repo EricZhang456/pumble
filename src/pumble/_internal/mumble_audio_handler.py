@@ -1,6 +1,5 @@
 # A lot of this comes from pymumble
 
-import warnings
 import struct
 
 from opuslib import Decoder
