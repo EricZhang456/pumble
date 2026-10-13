@@ -16,7 +16,7 @@ class ReadyEvent:
 
 @dataclass(frozen=True)
 class ChannelRemoveEvent:
-    channel_id: int
+    channel: Channel
 
 
 @dataclass(frozen=True)
@@ -27,8 +27,8 @@ class UserUpdateEvent:
 
 @dataclass(frozen=True)
 class UserRemoveEvent:
-    session_id: int
-    actor: int
+    target: User
+    actor: User
     ban: bool
     reason: Optional[str] = None
 
@@ -43,6 +43,6 @@ class AudioStreamEvent:
 class MumbleTextMessageEvent:
     actor: User
     target: list[User] | None
-    channel: Channel
+    channels: list[Channel]
     tree: list[Channel] | None
     message: str

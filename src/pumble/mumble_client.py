@@ -4,6 +4,7 @@ import datetime
 import platform
 import inspect
 import traceback
+import warnings
 from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
@@ -275,7 +276,7 @@ class MumbleClient:
                     self._server_info.max_users = server_config_msg.max_users
                     self._server_info.recording_allowed = server_config_msg.recording_allowed
                     ready_event = ReadyEvent(server_info=self._server_info,
-                                                   session_id=self._session_id)
+                                             session_id=self._session_id)
                     await self._emit_event("ready", ready_event)
                 case PacketType.PERMISSION_QUERY:
                     perm_query_msg = Mumble_pb2.PermissionQuery()
@@ -293,8 +294,11 @@ class MumbleClient:
                 case PacketType.CHANNEL_REMOVE:
                     channel_remove_msg = Mumble_pb2.ChannelRemove()
                     channel_remove_msg.ParseFromString(packet_bytes)
-                    self._channel_mamnager.remove_channel(channel_remove_msg.channel_id)
-                    await self._emit_event("channel_remove", ChannelRemoveEvent(channel_remove_msg.channel_id))
+                    channel = self._channel_mamnager.remove_channel(channel_remove_msg.channel_id)
+                    if channel is None:
+                        warnings.warn("Tried to remove a channel that doesn't exist")
+                        return
+                    await self._emit_event("channel_remove", ChannelRemoveEvent(channel=channel))
                 case PacketType.USER_STATE:
                     user_state_msg = Mumble_pb2.UserState()
                     user_state_msg.ParseFromString(packet_bytes)
@@ -310,10 +314,17 @@ class MumbleClient:
                 case PacketType.USER_REMOVE:
                     user_remove_msg = Mumble_pb2.UserRemove()
                     user_remove_msg.ParseFromString(packet_bytes)
-                    self._user_manager.remove_user(user_remove_msg.session)
+                    user = self._user_manager.remove_user(user_remove_msg.session)
+                    if user_remove_msg.actor in {user_remove_msg.session, 0}:
+                        actor = user
+                    else:
+                        actor = self._user_manager.find_user_by_session_id(user_remove_msg.actor)
+                        if actor is None:
+                            warnings.warn("The user initiating the kick doesn't exist")
+                            return
                     await self._emit_event("user_remove", UserRemoveEvent(
-                        session_id=user_remove_msg.session,
-                        actor=user_remove_msg.actor,
+                        target=user,
+                        actor=actor,
                         ban=user_remove_msg.ban,
                         reason=user_remove_msg.reason
                     ))
@@ -327,7 +338,10 @@ class MumbleClient:
                         for i in text_message_msg.session:
                             target.append(self._user_manager.find_user_by_session_id(i))
                     print(text_message_msg.channel_id)
-                    channel = self._channel_mamnager.find_channel_by_channel_id(text_message_msg.channel_id)
+                    channels = []
+                    if text_message_msg.channel_id:
+                        for i in text_message_msg.channel_id:
+                            channels.append(self._channel_mamnager.find_channel_by_channel_id(i))
                     tree = None
                     if text_message_msg.tree_id:
                         tree = []
@@ -336,7 +350,7 @@ class MumbleClient:
                     await self._emit_event("text_message", MumbleTextMessageEvent(
                         actor=actor,
                         target=target,
-                        channel=channel,
+                        channels=channels,
                         tree=tree,
                         message=text_message_msg.message
                     ))

@@ -67,11 +67,11 @@ class ChannelManager:
         return None
 
 
-    def remove_channel(self, channel_id: int):
+    def remove_channel(self, channel_id: int) -> Channel | None:
         for index, item in enumerate(self._channels):
             if item.channel_id == channel_id:
-                self._channels.pop(index)
-                break
+                return self._channels.pop(index)
+        return None
 
 
     def clear_channels(self):

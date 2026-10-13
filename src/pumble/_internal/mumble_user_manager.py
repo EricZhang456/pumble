@@ -85,15 +85,17 @@ class UserManager:
         return entry, new_entry
 
 
-    def remove_user(self, session_id: int):
+    def remove_user(self, session_id: int) -> User | None:
+        ret = None
         for index, item in enumerate(self._users):
             if item.session_id == session_id:
-                self._users.pop(index)
+                ret = self._users.pop(index)
                 break
         try:
             self._audio_queues.pop(session_id)
         except KeyError:
             pass
+        return ret
 
 
     async def put_audio(self, session_id: int, audio: bytes, sequence: int, target: int | ProtobufAudioTarget,
