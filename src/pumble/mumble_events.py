@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from .mumble_audio_msgs import MumbleAudioPacket
 from .mumble_user import MumbleUser
+from .mumble_channel import MumbleChannel
 from .mumble_server_info import MumbleServerInfo
 
 
@@ -36,3 +37,12 @@ class MumbleUserRemoveEvent:
 class MumbleAudioStreamEvent:
     user: MumbleUser
     stream: asyncio.Queue[MumbleAudioPacket | None]
+
+
+@dataclass(frozen=True)
+class MumbleTextMessageEvent:
+    actor: MumbleUser
+    target: list[MumbleUser] | None
+    channel: MumbleChannel
+    tree: list[MumbleChannel] | None
+    message: str

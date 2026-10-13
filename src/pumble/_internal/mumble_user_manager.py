@@ -132,6 +132,13 @@ class MumbleUserManager:
         await session_audio_queue.add_audio(None, sequence)
 
 
+    def find_user_by_session_id(self, session_id: int) -> MumbleUser | None:
+        for i in self._users:
+            if i.session_id == session_id:
+                return i
+        return None
+
+
     def clear_users(self):
         self._audio_queues = {}
         self._users = []

@@ -60,6 +60,13 @@ class MumbleChannelManager:
                 break
 
 
+    def find_channel_by_channel_id(self, channel_id: int) -> MumbleChannel | None:
+        for i in self._channels:
+            if i.channel_id == channel_id:
+                return i
+        return None
+
+
     def remove_channel(self, channel_id: int):
         for index, item in enumerate(self._channels):
             if item.channel_id == channel_id:

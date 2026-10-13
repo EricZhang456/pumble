@@ -17,7 +17,7 @@ from ._internal.mumble_tcp_connection import MumbleTCPConnection
 from ._internal.mumble_audio_handler import MumbleAudioHandler
 from .mumble_perm_flags import MumblePerms
 from .mumble_events import (MumbleReadyEvent, MumbleChannelRemoveEvent, MumbleUserUpdateEvent,
-                            MumbleUserRemoveEvent, MumbleAudioStreamEvent)
+                            MumbleUserRemoveEvent, MumbleAudioStreamEvent, MumbleTextMessageEvent)
 from .mumble_packet_type import MumblePacketType
 from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
 from .mumble_server_info import MumbleServerInfo
@@ -316,6 +316,28 @@ class MumbleClient:
                         actor=user_remove_msg.actor,
                         ban=user_remove_msg.ban,
                         reason=user_remove_msg.reason
+                    ))
+                case MumblePacketType.TEXT_MESSAGE:
+                    text_message_msg = Mumble_pb2.TextMessage()
+                    text_message_msg.ParseFromString(packet_bytes)
+                    actor = self._user_manager.find_user_by_session_id(text_message_msg.actor)
+                    target = None
+                    if text_message_msg.session:
+                        target = []
+                        for i in text_message_msg.session:
+                            target.append(self._user_manager.find_user_by_session_id(i))
+                    channel = self._channel_mamnager.find_channel_by_channel_id(text_message_msg.channel_id)
+                    tree = None
+                    if text_message_msg.tree_id:
+                        tree = []
+                        for i in text_message_msg.tree_id:
+                            tree.append(self._channel_mamnager.find_channel_by_channel_id(i))
+                    await self._emit_event("text_message", MumbleTextMessageEvent(
+                        actor=actor,
+                        target=target,
+                        channel=channel,
+                        tree=tree,
+                        message=text_message_msg.message
                     ))
                 case MumblePacketType.SERVER_SYNC:
                     server_sync_msg = Mumble_pb2.ServerSync()
