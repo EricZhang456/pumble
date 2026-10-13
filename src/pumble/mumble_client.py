@@ -10,19 +10,19 @@ from typing import Literal, TypeAlias, List, get_args
 
 from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 from ._internal.func_utils import get_required_params_for_func
-from ._internal.mumble_crypt_info import MumbleCryptInfo
-from ._internal.mumble_channel_manager import MumbleChannelManager
-from ._internal.mumble_user_manager import MumbleUserManager
-from ._internal.mumble_tcp_connection import MumbleTCPConnection
-from ._internal.mumble_audio_handler import MumbleAudioHandler
-from .mumble_perm_flags import MumblePerms
-from .mumble_events import (MumbleReadyEvent, MumbleChannelRemoveEvent, MumbleUserUpdateEvent,
-                            MumbleUserRemoveEvent, MumbleAudioStreamEvent, MumbleTextMessageEvent)
-from .mumble_packet_type import MumblePacketType
+from ._internal.mumble_crypt_info import CryptInfo
+from ._internal.mumble_channel_manager import ChannelManager
+from ._internal.mumble_user_manager import UserManager
+from ._internal.mumble_tcp_connection import TCPConnection
+from ._internal.mumble_audio_handler import AudioHandler
+from .mumble_perm_flags import Permission
+from .mumble_events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent,
+                            UserRemoveEvent, AudioStreamEvent, MumbleTextMessageEvent)
+from ._internal.mumble_packet_type import PacketType
 from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
-from .mumble_server_info import MumbleServerInfo
-from .mumble_channel import MumbleChannel
-from .mumble_user import MumbleUser
+from .mumble_server_info import ServerInfo
+from .mumble_channel import Channel
+from .mumble_user import User
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",
@@ -38,7 +38,7 @@ class MumbleClient:
         self.username = username
         self.password = password
         self.tokens = tokens
-        self._server_info: MumbleServerInfo | None = None
+        self._server_info: ServerInfo | None = None
         self._session_id: int | None = None
 
         self._current_channel_id: int | None = None
@@ -47,30 +47,30 @@ class MumbleClient:
         self._server_sync_completed = False
         self._ticker_task: asyncio.Task | None = None
         self._read_task: asyncio.Task | None = None
-        self._tcp_connection: MumbleTCPConnection | None = None
-        self._crypt_info: MumbleCryptInfo | None = None
+        self._tcp_connection: TCPConnection | None = None
+        self._crypt_info: CryptInfo | None = None
         self._ping_times: list[int] = []
         self._last_ping_time: datetime.datetime | None = None
         self._listeners: dict[str, list[Callable]] = {}
         self._use_protobuf_voice_message = False
-        self._channel_mamnager = MumbleChannelManager()
-        self._user_manager = MumbleUserManager()
-        self._audio_handler = MumbleAudioHandler(self._user_manager)
+        self._channel_mamnager = ChannelManager()
+        self._user_manager = UserManager()
+        self._audio_handler = AudioHandler(self._user_manager)
         self._active_audio_streams: dict[int, asyncio.Queue] = {}
 
 
     @property
-    def channels(self) -> List[MumbleChannel]:
+    def channels(self) -> List[Channel]:
         return self._channel_mamnager.channels
 
 
     @property
-    def users(self) -> List[MumbleUser]:
+    def users(self) -> List[User]:
         return self._user_manager.users
 
 
     @property
-    def server_info(self) -> MumbleServerInfo | None:
+    def server_info(self) -> ServerInfo | None:
         return self._server_info
 
 
@@ -80,7 +80,7 @@ class MumbleClient:
 
 
     @property
-    def current_channel(self) -> MumbleChannel | None:
+    def current_channel(self) -> Channel | None:
         if self._current_channel_id is None:
             return None
         for i in self.channels:
@@ -137,7 +137,7 @@ class MumbleClient:
             host, port, ssl=ssl_context, ssl_handshake_timeout=timeout
         )
         # TODO: Set up UDP connection
-        self._tcp_connection = MumbleTCPConnection(conn_reader, conn_writer)
+        self._tcp_connection = TCPConnection(conn_reader, conn_writer)
 
         version_message = Mumble_pb2.Version()
         if isinstance(version, MumbleVersion):
@@ -231,7 +231,7 @@ class MumbleClient:
             # TODO: Fetch description for channels, avatar/comment for users in hash only scenarios
             # ^ probably make a method to fetch those instead
             match packet_type:
-                case MumblePacketType.UDP_TUNNEL:
+                case PacketType.UDP_TUNNEL:
                     audio_data = await self._audio_handler.read_audio(packet_bytes)
                     if audio_data is None:
                         return
@@ -239,11 +239,11 @@ class MumbleClient:
                     session_id = user.session_id
                     if session_id not in self._active_audio_streams:
                         self._active_audio_streams[session_id] = queue
-                        stream_event = MumbleAudioStreamEvent(user=user, stream=queue)
+                        stream_event = AudioStreamEvent(user=user, stream=queue)
                         await self._emit_event("audio_stream", stream_event)
                     if terminator:
                         self._active_audio_streams.pop(session_id, None)
-                case MumblePacketType.VERSION:
+                case PacketType.VERSION:
                     server_version_msg = Mumble_pb2.Version()
                     server_version_msg.ParseFromString(packet_bytes)
                     server_version_info = MumbleVersionInfo(
@@ -253,16 +253,16 @@ class MumbleClient:
                         os_version=server_version_msg.os_version
                     )
                     # other fields come later
-                    self._server_info = MumbleServerInfo(version_info=server_version_info)
-                case MumblePacketType.CRYPT_SETUP:
+                    self._server_info = ServerInfo(version_info=server_version_info)
+                case PacketType.CRYPT_SETUP:
                     crypt_setup_msg = Mumble_pb2.CryptSetup()
                     crypt_setup_msg.ParseFromString(packet_bytes)
-                    self._crypt_info = MumbleCryptInfo(
+                    self._crypt_info = CryptInfo(
                         key=crypt_setup_msg.key,
                         client_nonce=crypt_setup_msg.client_nonce,
                         server_nonce=crypt_setup_msg.server_nonce
                     )
-                case MumblePacketType.SERVER_CONFIG:
+                case PacketType.SERVER_CONFIG:
                     server_config_msg = Mumble_pb2.ServerConfig()
                     server_config_msg.ParseFromString(packet_bytes)
                     if server_config_msg.max_bandwidth:
@@ -274,28 +274,28 @@ class MumbleClient:
                     self._server_info.max_image_message_length = server_config_msg.message_length
                     self._server_info.max_users = server_config_msg.max_users
                     self._server_info.recording_allowed = server_config_msg.recording_allowed
-                    ready_event = MumbleReadyEvent(server_info=self._server_info,
+                    ready_event = ReadyEvent(server_info=self._server_info,
                                                    session_id=self._session_id)
                     await self._emit_event("ready", ready_event)
-                case MumblePacketType.PERMISSION_QUERY:
+                case PacketType.PERMISSION_QUERY:
                     perm_query_msg = Mumble_pb2.PermissionQuery()
                     perm_query_msg.ParseFromString(packet_bytes)
-                    perms = MumblePerms(perm_query_msg.permissions)
+                    perms = Permission(perm_query_msg.permissions)
                     self._channel_mamnager.update_perms_for_channel(perm_query_msg.channel_id,
                                                                     perms,
                                                                     perm_query_msg.flush)
-                case MumblePacketType.CHANNEL_STATE:
+                case PacketType.CHANNEL_STATE:
                     channel_state_msg = Mumble_pb2.ChannelState()
                     channel_state_msg.ParseFromString(packet_bytes)
                     channel_entry = self._channel_mamnager.update_mumble_channel(channel_state_msg)
                     if self._server_sync_completed:
                         await self._emit_event("channel_update", channel_entry)
-                case MumblePacketType.CHANNEL_REMOVE:
+                case PacketType.CHANNEL_REMOVE:
                     channel_remove_msg = Mumble_pb2.ChannelRemove()
                     channel_remove_msg.ParseFromString(packet_bytes)
                     self._channel_mamnager.remove_channel(channel_remove_msg.channel_id)
-                    await self._emit_event("channel_remove", MumbleChannelRemoveEvent(channel_remove_msg.channel_id))
-                case MumblePacketType.USER_STATE:
+                    await self._emit_event("channel_remove", ChannelRemoveEvent(channel_remove_msg.channel_id))
+                case PacketType.USER_STATE:
                     user_state_msg = Mumble_pb2.UserState()
                     user_state_msg.ParseFromString(packet_bytes)
                     user_entry, new_user_entry = self._user_manager.update_user_info(user_state_msg)
@@ -303,21 +303,21 @@ class MumbleClient:
                         if new_user_entry:
                             await self._emit_event("user_connect", user_entry)
                         else:
-                            await self._emit_event("user_update", MumbleUserUpdateEvent(
+                            await self._emit_event("user_update", UserUpdateEvent(
                                 user=user_entry,
                                 actor=user_state_msg.actor
                             ))
-                case MumblePacketType.USER_REMOVE:
+                case PacketType.USER_REMOVE:
                     user_remove_msg = Mumble_pb2.UserRemove()
                     user_remove_msg.ParseFromString(packet_bytes)
                     self._user_manager.remove_user(user_remove_msg.session)
-                    await self._emit_event("user_remove", MumbleUserRemoveEvent(
+                    await self._emit_event("user_remove", UserRemoveEvent(
                         session_id=user_remove_msg.session,
                         actor=user_remove_msg.actor,
                         ban=user_remove_msg.ban,
                         reason=user_remove_msg.reason
                     ))
-                case MumblePacketType.TEXT_MESSAGE:
+                case PacketType.TEXT_MESSAGE:
                     text_message_msg = Mumble_pb2.TextMessage()
                     text_message_msg.ParseFromString(packet_bytes)
                     actor = self._user_manager.find_user_by_session_id(text_message_msg.actor)
@@ -326,6 +326,7 @@ class MumbleClient:
                         target = []
                         for i in text_message_msg.session:
                             target.append(self._user_manager.find_user_by_session_id(i))
+                    print(text_message_msg.channel_id)
                     channel = self._channel_mamnager.find_channel_by_channel_id(text_message_msg.channel_id)
                     tree = None
                     if text_message_msg.tree_id:
@@ -339,7 +340,7 @@ class MumbleClient:
                         tree=tree,
                         message=text_message_msg.message
                     ))
-                case MumblePacketType.SERVER_SYNC:
+                case PacketType.SERVER_SYNC:
                     server_sync_msg = Mumble_pb2.ServerSync()
                     server_sync_msg.ParseFromString(packet_bytes)
                     self._session_id = server_sync_msg.session
@@ -347,7 +348,7 @@ class MumbleClient:
                     self._server_info.motd = server_sync_msg.welcome_text
                     self._server_sync_completed = True
                     self._current_channel_id = 0
-                case MumblePacketType.PING:
+                case PacketType.PING:
                     if self._last_ping_time:
                         ping_time_delta = datetime.datetime.now() - self._last_ping_time
                         ping_time = ping_time_delta / datetime.timedelta(milliseconds=1)

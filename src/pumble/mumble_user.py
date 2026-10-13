@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 @dataclass(eq=False)
-class MumbleUser:
+class User:
     session_id: int
     name: str
     mute: bool
@@ -20,6 +20,6 @@ class MumbleUser:
 
 
     def __eq__(self, other):
-        if isinstance(other, MumbleUser):
+        if isinstance(other, User):
             return other.session_id == self.session_id
         return False

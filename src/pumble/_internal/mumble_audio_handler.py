@@ -8,7 +8,7 @@ from opuslib.exceptions import OpusError
 
 from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
-from .mumble_user_manager import MumbleUserManager
+from .mumble_user_manager import UserManager
 from .mumble_audio_message_type import AudioMessageType, ProtobufAudioMessageType
 from ..mumble_audio_msgs import ProtobufAudioTarget, Position
 
@@ -16,8 +16,8 @@ from ..mumble_audio_msgs import ProtobufAudioTarget, Position
 _AUDIO_FRAME_SIZE = 4096
 
 
-class MumbleAudioHandler:
-    def __init__(self, user_manager: MumbleUserManager):
+class AudioHandler:
+    def __init__(self, user_manager: UserManager):
         self._decoder = Decoder(fs=48000, channels=1)
         self._user_manager = user_manager
         self._protobuf_audio = False

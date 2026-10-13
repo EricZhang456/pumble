@@ -1,7 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
 
-from .mumble_user import MumbleUser
+from .mumble_user import User
 
 @dataclass(frozen=True)
 class Position:
@@ -11,7 +11,7 @@ class Position:
 
 
 @dataclass(frozen=True)
-class MumbleAudioTarget:
+class AudioTarget:
     id: int
 
 
@@ -23,9 +23,9 @@ class ProtobufAudioTarget(Enum):
 
 
 @dataclass(frozen=True)
-class MumbleAudioPacket:
-    sender: MumbleUser
-    target: MumbleAudioTarget | ProtobufAudioTarget
+class AudioPacket:
+    sender: User
+    target: AudioTarget | ProtobufAudioTarget
     data: bytes
     position: Position | None
     volume: float | None

@@ -2,31 +2,31 @@ import asyncio
 from typing import Optional
 from dataclasses import dataclass
 
-from .mumble_audio_msgs import MumbleAudioPacket
-from .mumble_user import MumbleUser
-from .mumble_channel import MumbleChannel
-from .mumble_server_info import MumbleServerInfo
+from .mumble_audio_msgs import AudioPacket
+from .mumble_user import User
+from .mumble_channel import Channel
+from .mumble_server_info import ServerInfo
 
 
 @dataclass(frozen=True)
-class MumbleReadyEvent:
-    server_info: MumbleServerInfo
+class ReadyEvent:
+    server_info: ServerInfo
     session_id: int
 
 
 @dataclass(frozen=True)
-class MumbleChannelRemoveEvent:
+class ChannelRemoveEvent:
     channel_id: int
 
 
 @dataclass(frozen=True)
-class MumbleUserUpdateEvent:
-    user: MumbleUser
+class UserUpdateEvent:
+    user: User
     actor: Optional[int] = None
 
 
 @dataclass(frozen=True)
-class MumbleUserRemoveEvent:
+class UserRemoveEvent:
     session_id: int
     actor: int
     ban: bool
@@ -34,15 +34,15 @@ class MumbleUserRemoveEvent:
 
 
 @dataclass(frozen=True)
-class MumbleAudioStreamEvent:
-    user: MumbleUser
-    stream: asyncio.Queue[MumbleAudioPacket | None]
+class AudioStreamEvent:
+    user: User
+    stream: asyncio.Queue[AudioPacket | None]
 
 
 @dataclass(frozen=True)
 class MumbleTextMessageEvent:
-    actor: MumbleUser
-    target: list[MumbleUser] | None
-    channel: MumbleChannel
-    tree: list[MumbleChannel] | None
+    actor: User
+    target: list[User] | None
+    channel: Channel
+    tree: list[Channel] | None
     message: str

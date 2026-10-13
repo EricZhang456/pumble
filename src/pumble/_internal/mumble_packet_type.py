@@ -3,10 +3,10 @@ from enum import Enum
 
 from google.protobuf.message import Message
 
-from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
+from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 
 
-class MumblePacketType(Enum):
+class PacketType(Enum):
     """Types of Mumble packets."""
     VERSION = 0
     UDP_TUNNEL = 1
@@ -36,66 +36,66 @@ class MumblePacketType(Enum):
     SUGGEST_CONFIG = 25
 
 
-def get_mumble_packet_type_from_proto(message: Message) -> MumblePacketType:
+def get_mumble_packet_type_from_proto(message: Message) -> PacketType:
     """Gets the Mumble packet type from a Mumble Protobuf message.
 
     :param message: The Protobuf message.
     :raises ValueError: Message is not a Mumble Protobuf message.
     :return: The Mumble packet type.
-    :rtype: MumblePacketType
+    :rtype: PacketType
     """
     match type(message):
         case Mumble_pb2.Version:
-            return MumblePacketType.VERSION
+            return PacketType.VERSION
         case Mumble_pb2.UDPTunnel:
-            return MumblePacketType.UDP_TUNNEL
+            return PacketType.UDP_TUNNEL
         case Mumble_pb2.Authenticate:
-            return MumblePacketType.AUTHENTICATE
+            return PacketType.AUTHENTICATE
         case Mumble_pb2.Ping:
-            return MumblePacketType.PING
+            return PacketType.PING
         case Mumble_pb2.Reject:
-            return MumblePacketType.REJECT
+            return PacketType.REJECT
         case Mumble_pb2.ServerSync:
-            return MumblePacketType.SERVER_SYNC
+            return PacketType.SERVER_SYNC
         case Mumble_pb2.ChannelRemove:
-            return MumblePacketType.CHANNEL_REMOVE
+            return PacketType.CHANNEL_REMOVE
         case Mumble_pb2.ChannelState:
-            return MumblePacketType.CHANNEL_STATE
+            return PacketType.CHANNEL_STATE
         case Mumble_pb2.UserRemove:
-            return MumblePacketType.USER_REMOVE
+            return PacketType.USER_REMOVE
         case Mumble_pb2.UserState:
-            return MumblePacketType.USER_STATE
+            return PacketType.USER_STATE
         case Mumble_pb2.BanList:
-            return MumblePacketType.BAN_LIST
+            return PacketType.BAN_LIST
         case Mumble_pb2.TextMessage:
-            return MumblePacketType.TEXT_MESSAGE
+            return PacketType.TEXT_MESSAGE
         case Mumble_pb2.PermissionDenied:
-            return MumblePacketType.PERMISSION_DENIED
+            return PacketType.PERMISSION_DENIED
         case Mumble_pb2.ACL:
-            return MumblePacketType.ACL
+            return PacketType.ACL
         case Mumble_pb2.QueryUsers:
-            return MumblePacketType.QUERY_USERS
+            return PacketType.QUERY_USERS
         case Mumble_pb2.CryptSetup:
-            return MumblePacketType.CRYPT_SETUP
+            return PacketType.CRYPT_SETUP
         case Mumble_pb2.ContextActionModify:
-            return MumblePacketType.CONTEXT_ACTION_MODIFY
+            return PacketType.CONTEXT_ACTION_MODIFY
         case Mumble_pb2.ContextAction:
-            return MumblePacketType.CONTEXT_ACTION
+            return PacketType.CONTEXT_ACTION
         case Mumble_pb2.UserList:
-            return MumblePacketType.USER_LIST
+            return PacketType.USER_LIST
         case Mumble_pb2.VoiceTarget:
-            return MumblePacketType.VOICE_TARGET
+            return PacketType.VOICE_TARGET
         case Mumble_pb2.PermissionQuery:
-            return MumblePacketType.PERMISSION_QUERY
+            return PacketType.PERMISSION_QUERY
         case Mumble_pb2.CodecVersion:
-            return MumblePacketType.CODEC_VERSION
+            return PacketType.CODEC_VERSION
         case Mumble_pb2.UserStats:
-            return MumblePacketType.USER_STATS
+            return PacketType.USER_STATS
         case Mumble_pb2.RequestBlob:
-            return MumblePacketType.REQUEST_BLOB
+            return PacketType.REQUEST_BLOB
         case Mumble_pb2.ServerConfig:
-            return MumblePacketType.SERVER_CONFIG
+            return PacketType.SERVER_CONFIG
         case Mumble_pb2.SuggestConfig:
-            return MumblePacketType.SUGGEST_CONFIG
+            return PacketType.SUGGEST_CONFIG
         case _:
             raise ValueError("Not a Mumble Protobuf message.")

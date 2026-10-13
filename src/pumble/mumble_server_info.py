@@ -5,7 +5,7 @@ from .mumble_version import MumbleVersionInfo
 
 
 @dataclass
-class MumbleServerInfo:
+class ServerInfo:
     version_info: MumbleVersionInfo
     max_bandwidth: Optional[int] = None
     motd: Optional[str] = None

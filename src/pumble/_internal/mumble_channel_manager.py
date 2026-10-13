@@ -1,11 +1,11 @@
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
-from ..mumble_perm_flags import MumblePerms
-from ..mumble_channel import MumbleChannel
+from ..mumble_perm_flags import Permission
+from ..mumble_channel import Channel
 
 
-class MumbleChannelManager:
+class ChannelManager:
     def __init__(self):
-        self._channels: list[MumbleChannel] = []
+        self._channels: list[Channel] = []
 
 
     @property
@@ -13,7 +13,7 @@ class MumbleChannelManager:
         return self._channels
 
 
-    def update_mumble_channel(self, channel_state_msg: Mumble_pb2.ChannelState) -> MumbleChannel:
+    def update_mumble_channel(self, channel_state_msg: Mumble_pb2.ChannelState) -> Channel:
         existing_entry_idx = None
         entry = None
         for index, item in enumerate(self._channels):
@@ -22,7 +22,7 @@ class MumbleChannelManager:
                 entry = item
                 break
         if existing_entry_idx is None:
-            entry = MumbleChannel(channel_id=channel_state_msg.channel_id,
+            entry = Channel(channel_id=channel_state_msg.channel_id,
                                   name=channel_state_msg.name,
                                   position=channel_state_msg.position,
                                   parent_channel=channel_state_msg.parent,
@@ -48,7 +48,7 @@ class MumbleChannelManager:
         return entry
 
 
-    def update_perms_for_channel(self, channel_id: int, perms: MumblePerms, flush: bool):
+    def update_perms_for_channel(self, channel_id: int, perms: Permission, flush: bool):
         for index, item in enumerate(self._channels):
             if item.channel_id == channel_id:
                 curr_channel = item
@@ -60,7 +60,7 @@ class MumbleChannelManager:
                 break
 
 
-    def find_channel_by_channel_id(self, channel_id: int) -> MumbleChannel | None:
+    def find_channel_by_channel_id(self, channel_id: int) -> Channel | None:
         for i in self._channels:
             if i.channel_id == channel_id:
                 return i

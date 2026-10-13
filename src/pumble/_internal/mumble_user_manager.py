@@ -1,26 +1,26 @@
 import warnings
 import asyncio
 
-from ..mumble_audio_msgs import MumbleAudioPacket, MumbleAudioTarget, Position, ProtobufAudioTarget
-from ..mumble_user import MumbleUser
+from ..mumble_audio_msgs import AudioPacket, AudioTarget, Position, ProtobufAudioTarget
+from ..mumble_user import User
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 
 
 class AudioQueue:
     def __init__(self):
-        self.queue: asyncio.Queue[MumbleAudioPacket | None] = asyncio.Queue()
+        self.queue: asyncio.Queue[AudioPacket | None] = asyncio.Queue()
         self._lock: asyncio.Lock = asyncio.Lock()
 
 
-    async def add_audio(self, packet: MumbleAudioPacket | None, sequence: int): # pylint: disable=unused-argument
+    async def add_audio(self, packet: AudioPacket | None, sequence: int): # pylint: disable=unused-argument
         # TODO: Make use of sequence
         async with self._lock:
             await self.queue.put(packet)
 
 
-class MumbleUserManager:
+class UserManager:
     def __init__(self):
-        self._users: list[MumbleUser] = []
+        self._users: list[User] = []
         # key is session id
         self._audio_queues: dict[int, AudioQueue] = {}
 
@@ -30,7 +30,7 @@ class MumbleUserManager:
         return self._users
 
 
-    def update_user_info(self, user_state_msg: Mumble_pb2.UserState) -> tuple[MumbleUser, bool]:
+    def update_user_info(self, user_state_msg: Mumble_pb2.UserState) -> tuple[User, bool]:
         entry = None
         existing_entry_idx = None
         for index, item in enumerate(self._users):
@@ -40,7 +40,7 @@ class MumbleUserManager:
                 break
         new_entry = existing_entry_idx is None
         if new_entry:
-            entry = MumbleUser(
+            entry = User(
                 session_id=user_state_msg.session,
                 name=user_state_msg.name,
                 mute=user_state_msg.mute,
@@ -103,17 +103,17 @@ class MumbleUserManager:
             session_audio_queue = AudioQueue()
             self._audio_queues[session_id] = session_audio_queue
         if isinstance(target, int):
-            audio_target = MumbleAudioTarget(target)
+            audio_target = AudioTarget(target)
         else:
             audio_target = target
-        user: MumbleUser | None = None
+        user: User | None = None
         for item in self._users:
             if item.session_id == session_id:
                 user = item
                 break
         if user is None:
             raise RuntimeError(f"Cannot find user for session_id: {session_id}")
-        audio_packet = MumbleAudioPacket(
+        audio_packet = AudioPacket(
             sender=user,
             target=audio_target,
             data=audio,
@@ -132,7 +132,7 @@ class MumbleUserManager:
         await session_audio_queue.add_audio(None, sequence)
 
 
-    def find_user_by_session_id(self, session_id: int) -> MumbleUser | None:
+    def find_user_by_session_id(self, session_id: int) -> User | None:
         for i in self._users:
             if i.session_id == session_id:
                 return i
