@@ -3,7 +3,6 @@ import ssl
 import datetime
 import platform
 import inspect
-import traceback
 from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
