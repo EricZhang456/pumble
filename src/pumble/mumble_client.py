@@ -10,6 +10,7 @@ from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
 
 from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
+from ._internal.logger import logger
 from ._internal.func_utils import get_required_params_for_func
 from ._internal.mumble_crypt_info import CryptInfo
 from ._internal.mumble_channel_manager import ChannelManager
@@ -296,7 +297,7 @@ class MumbleClient:
                     channel_remove_msg.ParseFromString(packet_bytes)
                     channel = self._channel_mamnager.remove_channel(channel_remove_msg.channel_id)
                     if channel is None:
-                        warnings.warn("Tried to remove a channel that doesn't exist")
+                        logger.error("Tried to remove a channel that doesn't exist, channel id: %d", channel_remove_msg.channel_id)
                         return
                     await self._emit_event("channel_remove", ChannelRemoveEvent(channel=channel))
                 case PacketType.USER_STATE:
@@ -320,7 +321,7 @@ class MumbleClient:
                     else:
                         actor = self._user_manager.find_user_by_session_id(user_remove_msg.actor)
                         if actor is None:
-                            warnings.warn("The user initiating the kick doesn't exist")
+                            logger.error("The user initiating the kick doesn't exist, actor: %d",user_remove_msg.actor)
                             return
                     await self._emit_event("user_remove", UserRemoveEvent(
                         target=user,

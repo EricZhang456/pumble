@@ -6,6 +6,7 @@ import struct
 from opuslib import Decoder
 from opuslib.exceptions import OpusError
 
+from .logger import logger
 from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
 from .mumble_user_manager import UserManager
@@ -44,7 +45,7 @@ class AudioHandler:
                 audio_message.ParseFromString(message[1:])
                 set_header = audio_message.WhichOneof("Header")
                 if set_header == "target":
-                    warnings.warn("Received target header from server. This is unexpected.")
+                    logger.error("Received target header from server. This is unexpected.")
                     target = ProtobufAudioTarget.NORMAL
                 else:
                     target = ProtobufAudioTarget(audio_message.context)
@@ -63,7 +64,7 @@ class AudioHandler:
                 try:
                     decoded_audio = self._decoder.decode(audio_message.opus_data, _AUDIO_FRAME_SIZE)
                 except OpusError:
-                    warnings.warn("An error occurred when decoding audio")
+                    logger.error("An error occurred when decoding audio")
                     return None
                 ret = await self._user_manager.put_audio(
                     session_id=session,
@@ -89,7 +90,7 @@ class AudioHandler:
             return None
         # TODO: Handle other audio codecs
         if msg_type in {AudioMessageType.CELT_ALPHA, AudioMessageType.SPEEX, AudioMessageType.CELT_BETA}:
-            warnings.warn("Only Opus is currently supported, ignoring audio message")
+            logger.warning("Only Opus is currently supported, ignoring audio message")
             return None
 
         target = header & 0b00011111
@@ -125,7 +126,7 @@ class AudioHandler:
                 try:
                     decoded_audio = self._decoder.decode(message[pos:pos + size], _AUDIO_FRAME_SIZE)
                 except OpusError:
-                    warnings.warn("An error occurred when decoding audio")
+                    logger.error("An error occurred when decoding audio")
                     return None
                 # TODO: Handle position
                 position = None
