@@ -9,7 +9,7 @@ class AbstractMumbleVersion(ABC):
     """Mumble version interface."""
     @abstractmethod
     def to_version_int(self) -> int:
-        """Converts Mumble version to an integer
+        """Converts Mumble version to an integer.
 
         :return: The Mumble version as an integer form. Can be uint64 or uint32.
         :rtype: int
