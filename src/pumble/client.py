@@ -13,7 +13,7 @@ from ._internal.func_utils import get_required_params_for_func
 from ._internal.crypt_info import CryptInfo
 from ._internal.channel_manager import ChannelManager
 from ._internal.user_manager import UserManager
-from ._internal.cp_connection import TCPConnection
+from ._internal.tcp_connection import TCPConnection
 from ._internal.audio_handler import AudioHandler
 from .perm_flags import Permission, DenyType
 from .events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
