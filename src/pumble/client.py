@@ -17,7 +17,7 @@ from ._internal.tcp_connection import TCPConnection
 from ._internal.audio_handler import AudioHandler
 from .perm_flags import Permission, DenyType
 from .events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
-                            AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
+                     AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
 from ._internal.packet_type import PacketType
 from .version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
 from .server_info import ServerInfo
