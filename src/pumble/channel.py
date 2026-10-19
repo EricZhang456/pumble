@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from .mumble_perm_flags import Permission
+from .perm_flags import Permission
 
 
 @dataclass(eq=False)

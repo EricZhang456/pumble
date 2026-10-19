@@ -8,9 +8,9 @@ from opuslib.exceptions import OpusError
 from .logger import logger
 from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
-from .mumble_user_manager import UserManager
-from .mumble_audio_message_type import AudioMessageType, ProtobufAudioMessageType
-from ..mumble_audio_msgs import ProtobufAudioTarget, Position
+from .user_manager import UserManager
+from .audio_message_type import AudioMessageType, ProtobufAudioMessageType
+from ..audio_msgs import ProtobufAudioTarget, Position
 
 
 _AUDIO_FRAME_SIZE = 4096

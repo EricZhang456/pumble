@@ -1,7 +1,7 @@
 import asyncio
 
-from ..mumble_audio_msgs import AudioPacket, AudioTarget, Position, ProtobufAudioTarget
-from ..mumble_user import User
+from ..audio_msgs import AudioPacket, AudioTarget, Position, ProtobufAudioTarget
+from ..user import User
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 
 

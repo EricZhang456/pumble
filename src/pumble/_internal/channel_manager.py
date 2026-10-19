@@ -1,6 +1,6 @@
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
-from ..mumble_perm_flags import Permission
-from ..mumble_channel import Channel
+from ..perm_flags import Permission
+from ..channel import Channel
 
 
 class ChannelManager:

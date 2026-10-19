@@ -1,7 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
 
-from .mumble_user import User
+from .user import User
 
 @dataclass(frozen=True)
 class Position:

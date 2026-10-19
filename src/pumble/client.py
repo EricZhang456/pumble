@@ -10,19 +10,19 @@ from typing import Literal, TypeAlias, List, get_args
 from ._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 from ._internal.logger import logger
 from ._internal.func_utils import get_required_params_for_func
-from ._internal.mumble_crypt_info import CryptInfo
-from ._internal.mumble_channel_manager import ChannelManager
-from ._internal.mumble_user_manager import UserManager
-from ._internal.mumble_tcp_connection import TCPConnection
-from ._internal.mumble_audio_handler import AudioHandler
-from .mumble_perm_flags import Permission, DenyType
-from .mumble_events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
+from ._internal.crypt_info import CryptInfo
+from ._internal.channel_manager import ChannelManager
+from ._internal.user_manager import UserManager
+from ._internal.cp_connection import TCPConnection
+from ._internal.audio_handler import AudioHandler
+from .perm_flags import Permission, DenyType
+from .events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
                             AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
-from ._internal.mumble_packet_type import PacketType
-from .mumble_version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
-from .mumble_server_info import ServerInfo
-from .mumble_channel import Channel
-from .mumble_user import User
+from ._internal.packet_type import PacketType
+from .version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
+from .server_info import ServerInfo
+from .channel import Channel
+from .user import User
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",

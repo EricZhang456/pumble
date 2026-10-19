@@ -3,7 +3,7 @@ import struct
 
 from google.protobuf.message import Message
 
-from .mumble_packet_type import PacketType, get_mumble_packet_type_from_proto
+from .packet_type import PacketType, get_mumble_packet_type_from_proto
 
 
 class TCPConnection:

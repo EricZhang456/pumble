@@ -2,11 +2,11 @@ import asyncio
 from typing import Optional
 from dataclasses import dataclass
 
-from .mumble_perm_flags import DenyType, Permission
-from .mumble_audio_msgs import AudioPacket
-from .mumble_user import User
-from .mumble_channel import Channel
-from .mumble_server_info import ServerInfo
+from .perm_flags import DenyType, Permission
+from .audio_msgs import AudioPacket
+from .user import User
+from .channel import Channel
+from .server_info import ServerInfo
 
 
 @dataclass(frozen=True)

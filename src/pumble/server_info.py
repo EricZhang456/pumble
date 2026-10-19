@@ -1,7 +1,7 @@
 from typing import Optional
 from dataclasses import dataclass
 
-from .mumble_version import MumbleVersionInfo
+from .version import MumbleVersionInfo
 
 
 @dataclass
