@@ -67,6 +67,15 @@ class ChannelManager:
         return None
 
 
+    def is_channel_available(self, channel: Channel) -> bool:
+        available = False
+        for i in self._channels:
+            if i.channel_id == channel.channel_id:
+                available = True
+                break
+        return available
+
+
     def remove_channel(self, channel_id: int) -> Channel | None:
         for index, item in enumerate(self._channels):
             if item.channel_id == channel_id:

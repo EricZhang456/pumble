@@ -140,6 +140,15 @@ class UserManager:
         return None
 
 
+    def is_user_available(self, user: User) -> bool:
+        available = False
+        for i in self._users:
+            if i.session_id == user.session_id:
+                available = True
+                break
+        return available
+
+
     def clear_users(self):
         self._audio_queues = {}
         self._users = []

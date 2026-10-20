@@ -18,6 +18,8 @@ from ._internal.audio_handler import AudioHandler
 from ._internal.audio_connection import AudioConnection
 from ._internal.tcp_audio_connection import TCPAudioConnection
 from ._internal.packet_type import PacketType
+from .error import PumbleError
+from .message.base_message import BaseMessage
 from .perm_flags import Permission, DenyType
 from .events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
                      AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
@@ -76,12 +78,23 @@ class MumbleClient:
 
     @property
     def server_info(self) -> ServerInfo | None:
+        if self._server_info is None:
+            raise PumbleError("Client has not connected yet")
         return self._server_info
 
 
     @property
-    def session_id(self) -> int | None:
+    def session_id(self) -> int:
+        if self._session_id is None:
+            raise PumbleError("Client has not connected yet")
         return self._session_id
+
+
+    @property
+    def channel_id(self) -> int:
+        if self._current_channel_id is None:
+            raise PumbleError("Client has not connected yet")
+        return self.channel_id
 
 
     @property
@@ -233,6 +246,10 @@ class MumbleClient:
 
     async def send_audio(self, stream: AudioStream):
         await self._audio_handler.send_audio(stream)
+
+
+    async def send_message(self, message: BaseMessage):
+        await self._tcp_connection.write_proto(message.to_mumble_message(self))
 
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
