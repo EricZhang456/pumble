@@ -3,7 +3,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from .perm_flags import DenyType, Permission
-from .audio_msgs import AudioPacket
+from .audio_msgs import IncomingAudioFrame
 from .user import User
 from .channel import Channel
 from .server_info import ServerInfo
@@ -37,7 +37,7 @@ class UserRemoveEvent:
 @dataclass(frozen=True)
 class AudioStreamEvent:
     user: User
-    stream: asyncio.Queue[AudioPacket | None]
+    stream: asyncio.Queue[IncomingAudioFrame | None]
 
 
 @dataclass(frozen=True)

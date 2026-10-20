@@ -1,17 +1,17 @@
 import asyncio
 
-from ..audio_msgs import AudioPacket, AudioTarget, Position, ProtobufAudioTarget
+from ..audio_msgs import IncomingAudioFrame, AudioTarget, Position, ProtobufAudioTarget
 from ..user import User
 from .._proto import Mumble_pb2 # pylint: disable=no-name-in-module
 
 
 class AudioQueue:
     def __init__(self):
-        self.queue: asyncio.Queue[AudioPacket | None] = asyncio.Queue()
+        self.queue: asyncio.Queue[IncomingAudioFrame | None] = asyncio.Queue()
         self._lock: asyncio.Lock = asyncio.Lock()
 
 
-    async def add_audio(self, packet: AudioPacket | None, sequence: int): # pylint: disable=unused-argument
+    async def add_audio(self, packet: IncomingAudioFrame | None, sequence: int): # pylint: disable=unused-argument
         # TODO: Make use of sequence
         async with self._lock:
             await self.queue.put(packet)
@@ -114,7 +114,7 @@ class UserManager:
                 break
         if user is None:
             raise RuntimeError(f"Cannot find user for session_id: {session_id}")
-        audio_packet = AudioPacket(
+        audio_packet = IncomingAudioFrame(
             sender=user,
             target=audio_target,
             data=audio,

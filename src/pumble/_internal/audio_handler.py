@@ -1,8 +1,9 @@
 # A lot of this comes from pymumble
 
+import asyncio
 import struct
 
-from opuslib import Decoder
+from opuslib import Decoder, Encoder
 from opuslib.exceptions import OpusError
 
 from .logger import logger
@@ -10,21 +11,32 @@ from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
 from .user_manager import UserManager
 from .audio_message_type import AudioMessageType, ProtobufAudioMessageType
-from ..audio_msgs import ProtobufAudioTarget, Position
+from ..audio_msgs import ProtobufAudioTarget, Position, AudioStream
+from .audio_connection import AudioConnection
+from .utils import UINT64_MAX, INT32_MAX, lookahead_async
 
 
 _AUDIO_FRAME_SIZE = 4096
+_AUDIO_SAMPLING_RATE = 48000
+_AUDIO_CHANNELS = 1
 
 
 class AudioHandler:
     def __init__(self, user_manager: UserManager):
-        self._decoder = Decoder(fs=48000, channels=1)
+        self._decoder = Decoder(fs=_AUDIO_SAMPLING_RATE, channels=_AUDIO_CHANNELS)
+        self._encoder = Encoder(fs=_AUDIO_SAMPLING_RATE, channels=_AUDIO_CHANNELS, application="voip")
         self._user_manager = user_manager
+        self._audio_lock = asyncio.Lock()
         self._protobuf_audio = False
+        self._audio_connection = None
 
 
     def use_protobuf_audio(self, value: bool):
         self._protobuf_audio = value
+
+
+    def set_audio_connection(self, conn: AudioConnection):
+        self._audio_connection = conn
 
 
     async def read_audio(self, message: bytes):
@@ -139,3 +151,59 @@ class AudioHandler:
                 if terminator:
                     await self._user_manager.end_audio(session_id=session, sequence=sequence.value)
                 return *ret, terminator
+
+
+    async def send_audio(self, stream: AudioStream):
+        if self._audio_connection is None:
+            raise RuntimeError("send_audio called when AudioConnection has not been registered")
+        if self._protobuf_audio:
+            await self._send_audio_protobuf(stream)
+        else:
+            await self._send_audio_legacy(stream)
+
+
+    async def _send_audio_protobuf(self, stream: AudioStream):
+        async with self._audio_lock:
+            sequence = 0
+            async for item, has_next in lookahead_async(stream):
+                audio_msg = MumbleUDP_pb2.Audio()
+                audio_msg.frame_number = sequence
+                audio_msg.is_terminator = not has_next
+                audio_msg.opus_data = self._encoder.encode(item.data, len(item.data) // _AUDIO_CHANNELS)
+                if item.target is not None:
+                    target_id = item.target.id
+                    if target_id > 30 or target_id in {0, 1}:
+                        logger.error("Outgoing audio frame has an invalid target id, ignoring. Target ID: %d", target_id)
+                        audio_msg.target = 0
+                    else:
+                        audio_msg.target = target_id
+                else:
+                    audio_msg.target = 0
+                if item.position is not None:
+                    audio_msg.positional_data.extend((item.position.x, item.position.y, item.position.z))
+                sequence = (sequence + 1) % UINT64_MAX
+                await self._audio_connection.send_protobuf_audio(audio_msg)
+
+
+    async def _send_audio_legacy(self, stream: AudioStream):
+        async with self._audio_lock:
+            sequence = 0
+            async for item, has_next in lookahead_async(stream):
+                target_id = 0
+                if item.target is not None:
+                    msg_target_id = item.target.id
+                    if msg_target_id > 30 or msg_target_id in {0, 1}:
+                        logger.error("Outgoing audio frame has an invalid target id, ignoring. Target ID: %d", msg_target_id)
+                    else:
+                        target_id = msg_target_id
+                header = struct.pack("!B", AudioMessageType.OPUS.value << 5 | target_id)
+                length = len(item.data)
+                if not has_next:
+                    length |= 0x2000
+                length_varint = VarInt(length).encode()
+                audio_data = self._encoder.encode(item.data, len(item.data) // _AUDIO_CHANNELS)
+                payload = header + length_varint + audio_data
+                if item.position is not None:
+                    payload += struct.pack("fff", item.position.x, item.position.y, item.position.z)
+                await self._audio_connection.send_audio(payload)
+                sequence = (sequence + 1) % INT32_MAX

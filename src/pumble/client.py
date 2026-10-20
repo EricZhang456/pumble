@@ -15,10 +15,13 @@ from ._internal.channel_manager import ChannelManager
 from ._internal.user_manager import UserManager
 from ._internal.tcp_connection import TCPConnection
 from ._internal.audio_handler import AudioHandler
+from ._internal.audio_connection import AudioConnection
+from ._internal.tcp_audio_connection import TCPAudioConnection
+from ._internal.packet_type import PacketType
 from .perm_flags import Permission, DenyType
 from .events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
                      AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
-from ._internal.packet_type import PacketType
+from .audio_msgs import AudioStream
 from .version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
 from .server_info import ServerInfo
 from .channel import Channel
@@ -49,6 +52,7 @@ class MumbleClient:
         self._ticker_task: asyncio.Task | None = None
         self._read_task: asyncio.Task | None = None
         self._tcp_connection: TCPConnection | None = None
+        self._audio_conn: AudioConnection | None = None
         self._crypt_info: CryptInfo | None = None
         self._ping_times: list[int] = []
         self._last_ping_time: datetime.datetime | None = None
@@ -140,6 +144,8 @@ class MumbleClient:
         )
         # TODO: Set up UDP connection
         self._tcp_connection = TCPConnection(conn_reader, conn_writer)
+        self._audio_conn = TCPAudioConnection(self._tcp_connection)
+        self._audio_handler.set_audio_connection(self._audio_conn)
 
         version_message = Mumble_pb2.Version()
         if isinstance(version, MumbleVersion):
@@ -223,6 +229,10 @@ class MumbleClient:
             # pylint: disable=bare-except
             except:
                 logger.exception("An exception occurred when processing %s event listeners", event_name)
+
+
+    async def send_audio(self, stream: AudioStream):
+        await self._audio_handler.send_audio(stream)
 
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
