@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from google.protobuf.message import Message
 
-from ..client import MumbleClient
+if TYPE_CHECKING:
+    from ..client import MumbleClient
 
 
 class BaseMessage(ABC):
