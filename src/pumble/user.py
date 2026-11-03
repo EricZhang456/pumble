@@ -23,3 +23,16 @@ class User:
         if isinstance(other, User):
             return other.session_id == self.session_id
         return False
+
+
+@dataclass(eq=False)
+class RegisteredUser:
+    registered_user_id: int
+    name: str
+    last_seen: int
+    last_channel: int
+
+    def __eq__(self, other):
+        if isinstance(other, RegisteredUser):
+            return other.registered_user_id == self.registered_user_id
+        return False

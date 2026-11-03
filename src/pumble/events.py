@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from .perm_flags import DenyType, Permission
 from .audio_msgs import IncomingAudioFrame
-from .user import User
+from .user import User, RegisteredUser
 from .channel import Channel
 from .server_info import ServerInfo
 
@@ -57,3 +57,8 @@ class PermissionDeniedEvent:
     reason: str
     deny_type: DenyType
     name: str | None
+
+
+@dataclass(frozen=True)
+class UserListEvent:
+    users: list[RegisteredUser]

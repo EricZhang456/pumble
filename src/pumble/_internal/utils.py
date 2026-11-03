@@ -1,7 +1,6 @@
 from typing import AsyncIterator
 from typing import TypeVar
 
-from ..error import PumbleError
 from ..user import User
 from ..channel import Channel
 from .channel_manager import ChannelManager
@@ -12,6 +11,7 @@ _T = TypeVar("_T")
 
 INT32_MAX = (1 << 31) - 1
 UINT64_MAX = (1 << 64) - 1
+SUPERUSER_ID = 0
 
 
 async def lookahead_async(iterable: AsyncIterator[_T]) -> AsyncIterator[tuple[_T, bool]]:

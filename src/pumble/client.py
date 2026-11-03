@@ -22,17 +22,18 @@ from .error import PumbleError
 from .message.base_message import BaseMessage
 from .perm_flags import Permission, DenyType
 from .events import (ReadyEvent, ChannelRemoveEvent, UserUpdateEvent, UserRemoveEvent,
-                     AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent)
+                     AudioStreamEvent, TextMessageEvent, PermissionDeniedEvent,
+                     UserListEvent)
 from .audio_msgs import AudioStream
 from .version import MumbleVersion, AbstractMumbleVersion, MumbleVersionInfo, MumbleVersionLegacy
 from .server_info import ServerInfo
 from .channel import Channel
-from .user import User
+from .user import User, RegisteredUser
 
 
 MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "channel_remove",
                                  "user_update", "user_remove", "user_connect", "audio_stream",
-                                 "permission_denied"]
+                                 "permission_denied", "user_list"]
 _VALID_EVENTS = get_args(MumbleEvent)
 
 
@@ -403,6 +404,19 @@ class MumbleClient:
                         tree=tree,
                         message=text_message_msg.message
                     ))
+                case PacketType.USER_LIST:
+                    user_list_msg = Mumble_pb2.UserList()
+                    user_list_msg.ParseFromString(packet_bytes)
+                    reg_users = []
+                    for user in user_list_msg.users:
+                        curr_user = RegisteredUser(
+                            registered_user_id=user.user_id,
+                            name=user.name,
+                            last_seen=user.last_seen,
+                            last_channel=user.last_channel
+                        )
+                        reg_users.append(curr_user)
+                    await self._emit_event("user_list", UserListEvent(users=reg_users))
                 case PacketType.SERVER_SYNC:
                     server_sync_msg = Mumble_pb2.ServerSync()
                     server_sync_msg.ParseFromString(packet_bytes)
