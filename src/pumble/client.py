@@ -3,6 +3,7 @@ import ssl
 import datetime
 import platform
 import inspect
+import logging
 from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
@@ -186,6 +187,8 @@ class MumbleClient:
             auth_message.client_type = 1
         await self._tcp_connection.write_proto(auth_message)
 
+        logger.debug("Connected to server %s:%d as Mumble version %s", host, port, str(version))
+
         self._connected = True
         self._ticker_task = asyncio.create_task(self._ticker_loop())
         self._read_task = asyncio.create_task(self._read_packet_loop())
@@ -250,7 +253,11 @@ class MumbleClient:
 
 
     async def send_message(self, message: BaseMessage):
-        await self._tcp_connection.write_proto(message.to_mumble_message(self))
+        message_protobuf = message.to_mumble_message(self)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Sending %s Pumble message", type(message).__name__)
+            logger.debug("Dispatching %s message to Mumble server", type(message_protobuf).__name__)
+        await self._tcp_connection.write_proto(message_protobuf)
 
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
@@ -262,6 +269,7 @@ class MumbleClient:
             # ^ probably make a method to fetch those instead
             match packet_type:
                 case PacketType.UDP_TUNNEL:
+                    logger.debug("Recevied UDPTunnel message")
                     audio_data = await self._audio_handler.read_audio(packet_bytes)
                     if audio_data is None:
                         return
@@ -274,6 +282,7 @@ class MumbleClient:
                     if terminator:
                         self._active_audio_streams.pop(session_id, None)
                 case PacketType.VERSION:
+                    logger.debug("Recevied Version message")
                     server_version_msg = Mumble_pb2.Version()
                     server_version_msg.ParseFromString(packet_bytes)
                     server_version_info = MumbleVersionInfo(
@@ -285,6 +294,7 @@ class MumbleClient:
                     # other fields come later
                     self._server_info = ServerInfo(version_info=server_version_info)
                 case PacketType.CRYPT_SETUP:
+                    logger.debug("Recevied CryptSetup message")
                     crypt_setup_msg = Mumble_pb2.CryptSetup()
                     crypt_setup_msg.ParseFromString(packet_bytes)
                     self._crypt_info = CryptInfo(
@@ -293,6 +303,7 @@ class MumbleClient:
                         server_nonce=crypt_setup_msg.server_nonce
                     )
                 case PacketType.SERVER_CONFIG:
+                    logger.debug("Recevied ServerConfig message")
                     server_config_msg = Mumble_pb2.ServerConfig()
                     server_config_msg.ParseFromString(packet_bytes)
                     if server_config_msg.max_bandwidth:
@@ -308,6 +319,7 @@ class MumbleClient:
                                              session_id=self._session_id)
                     await self._emit_event("ready", ready_event)
                 case PacketType.PERMISSION_QUERY:
+                    logger.debug("Recevied PermissionQuery message")
                     perm_query_msg = Mumble_pb2.PermissionQuery()
                     perm_query_msg.ParseFromString(packet_bytes)
                     perms = Permission(perm_query_msg.permissions)
@@ -315,6 +327,7 @@ class MumbleClient:
                                                                     perms,
                                                                     perm_query_msg.flush)
                 case PacketType.PERMISSION_DENIED:
+                    logger.debug("Recevied PermissionDenied message")
                     perm_denied_msg = Mumble_pb2.PermissionDenied()
                     perm_denied_msg.ParseFromString(packet_bytes)
                     deny_type = DenyType(perm_denied_msg.type)
@@ -336,12 +349,14 @@ class MumbleClient:
                         name=name
                     ))
                 case PacketType.CHANNEL_STATE:
+                    logger.debug("Recevied ChannelState message")
                     channel_state_msg = Mumble_pb2.ChannelState()
                     channel_state_msg.ParseFromString(packet_bytes)
                     channel_entry = self._channel_mamnager.update_mumble_channel(channel_state_msg)
                     if self._server_sync_completed:
                         await self._emit_event("channel_update", channel_entry)
                 case PacketType.CHANNEL_REMOVE:
+                    logger.debug("Recevied ChannelRemove message")
                     channel_remove_msg = Mumble_pb2.ChannelRemove()
                     channel_remove_msg.ParseFromString(packet_bytes)
                     channel = self._channel_mamnager.remove_channel(channel_remove_msg.channel_id)
@@ -350,6 +365,7 @@ class MumbleClient:
                         return
                     await self._emit_event("channel_remove", ChannelRemoveEvent(channel=channel))
                 case PacketType.USER_STATE:
+                    logger.debug("Recevied UserState message")
                     user_state_msg = Mumble_pb2.UserState()
                     user_state_msg.ParseFromString(packet_bytes)
                     user_entry, new_user_entry = self._user_manager.update_user_info(user_state_msg)
@@ -362,6 +378,7 @@ class MumbleClient:
                                 actor=user_state_msg.actor
                             ))
                 case PacketType.USER_REMOVE:
+                    logger.debug("Recevied UserRemove message")
                     user_remove_msg = Mumble_pb2.UserRemove()
                     user_remove_msg.ParseFromString(packet_bytes)
                     user = self._user_manager.remove_user(user_remove_msg.session)
@@ -379,6 +396,7 @@ class MumbleClient:
                         reason=user_remove_msg.reason
                     ))
                 case PacketType.TEXT_MESSAGE:
+                    logger.debug("Recevied TextMessage message")
                     text_message_msg = Mumble_pb2.TextMessage()
                     text_message_msg.ParseFromString(packet_bytes)
                     actor = self._user_manager.find_user_by_session_id(text_message_msg.actor)
@@ -405,6 +423,7 @@ class MumbleClient:
                         message=text_message_msg.message
                     ))
                 case PacketType.USER_LIST:
+                    logger.debug("Recevied UserList message")
                     user_list_msg = Mumble_pb2.UserList()
                     user_list_msg.ParseFromString(packet_bytes)
                     reg_users = []
@@ -418,6 +437,7 @@ class MumbleClient:
                         reg_users.append(curr_user)
                     await self._emit_event("user_list", UserListEvent(users=reg_users))
                 case PacketType.SERVER_SYNC:
+                    logger.debug("Recevied ServerSync message")
                     server_sync_msg = Mumble_pb2.ServerSync()
                     server_sync_msg.ParseFromString(packet_bytes)
                     self._session_id = server_sync_msg.session
@@ -426,6 +446,7 @@ class MumbleClient:
                     self._server_sync_completed = True
                     self._current_channel_id = 0
                 case PacketType.PING:
+                    logger.debug("Recevied Ping message")
                     if self._last_ping_time:
                         ping_time_delta = datetime.datetime.now() - self._last_ping_time
                         ping_time = ping_time_delta / datetime.timedelta(milliseconds=1)
@@ -440,6 +461,7 @@ class MumbleClient:
 
 
     async def _send_ping(self):
+        logger.debug("Sending Ping message to Mumble server")
         ping_message = Mumble_pb2.Ping()
         ping_message.tcp_packets = self._tcp_packets_received
         if self._ping_times:
