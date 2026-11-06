@@ -37,6 +37,9 @@ MumbleEvent: TypeAlias = Literal["ready", "text_message", "channel_update", "cha
                                  "permission_denied", "user_list"]
 _VALID_EVENTS = get_args(MumbleEvent)
 
+_PROTOBUF_AUDIO_MUMBLE_VERSION = MumbleVersion(1, 5, 0, 0)
+_PROTOBUF_AUDIO_MUMBLE_VERSION_LEGACY = MumbleVersionLegacy(1, 5, 0)
+
 
 class MumbleClient:
     def __init__(self,
@@ -166,10 +169,10 @@ class MumbleClient:
         if isinstance(version, MumbleVersion):
             version_message.version_v2 = version.to_version_int()
             version_message.version_v1 = version.to_legacy_version().to_version_int()
-            self._use_protobuf_voice_message = version >= MumbleVersion(1, 5, 0, 0)
+            self._use_protobuf_voice_message = version >= _PROTOBUF_AUDIO_MUMBLE_VERSION
         else:
             version_message.version_v1 = version.to_version_int()
-            self._use_protobuf_voice_message = version >= MumbleVersionLegacy(1, 5, 0)
+            self._use_protobuf_voice_message = version >= _PROTOBUF_AUDIO_MUMBLE_VERSION_LEGACY
         self._audio_handler.use_protobuf_audio(self._use_protobuf_voice_message)
         version_message.release = release_name
         version_message.os = platform.system()
