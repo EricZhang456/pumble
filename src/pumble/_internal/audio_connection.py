@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from google.protobuf.message import Message
 
+from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .audio_message_type import ProtobufAudioMessageType
 
 
@@ -21,4 +22,11 @@ class AudioConnection(ABC):
         :param data: Protobuf audio message
         :type data: google.protobuf.message.Message
         """
-        await self.send_audio(ProtobufAudioMessageType.AUDIO.value.to_bytes(1, byteorder="big") + data.SerializeToString())
+        match type(data):
+            case MumbleUDP_pb2.Audio:
+                header = ProtobufAudioMessageType.AUDIO.value.to_bytes(1, byteorder="big")
+            case MumbleUDP_pb2.Ping:
+                header = ProtobufAudioMessageType.PING.value.to_bytes(1, byteorder="big")
+            case _:
+                raise ValueError("Not a Mumble UDP Protobuf message.")
+        await self.send_audio(header + data.SerializeToString())
