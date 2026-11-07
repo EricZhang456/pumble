@@ -197,11 +197,11 @@ class AudioHandler:
                     else:
                         target_id = msg_target_id
                 header = struct.pack("!B", AudioMessageType.OPUS.value << 5 | target_id)
-                length = len(item.data)
+                audio_data = self._encoder.encode(item.data, len(item.data) // _AUDIO_CHANNELS)
+                length = len(audio_data)
                 if not has_next:
                     length |= 0x2000
                 length_varint = VarInt(length).encode()
-                audio_data = self._encoder.encode(item.data, len(item.data) // _AUDIO_CHANNELS)
                 payload = header + length_varint + audio_data
                 if item.position is not None:
                     payload += struct.pack("fff", item.position.x, item.position.y, item.position.z)
