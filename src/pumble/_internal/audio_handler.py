@@ -2,6 +2,7 @@
 
 import asyncio
 import struct
+import contextlib
 
 from opuslib import Decoder, Encoder
 from opuslib.exceptions import OpusError
@@ -156,10 +157,11 @@ class AudioHandler:
     async def send_audio(self, stream: AudioStream):
         if self._audio_connection is None:
             raise RuntimeError("send_audio called when AudioConnection has not been registered")
-        if self._protobuf_audio:
-            await self._send_audio_protobuf(stream)
-        else:
-            await self._send_audio_legacy(stream)
+        async with contextlib.aclosing(stream):
+            if self._protobuf_audio:
+                await self._send_audio_protobuf(stream)
+            else:
+                await self._send_audio_legacy(stream)
 
 
     async def _send_audio_protobuf(self, stream: AudioStream):

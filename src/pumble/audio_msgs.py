@@ -1,6 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 
 from .user import User
 
@@ -43,4 +43,4 @@ class IncomingAudioFrame(BaseAudioFrame):
     volume: float | None
 
 
-AudioStream = AsyncIterator[OutgoingAudioFrame]
+AudioStream = AsyncGenerator[OutgoingAudioFrame, None]
