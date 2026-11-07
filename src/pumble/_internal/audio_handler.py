@@ -135,7 +135,7 @@ class AudioHandler:
                 if audio_message.volume_adjustment:
                     volume = audio_message.volume_adjustment
                 try:
-                    decoded_audio = self._decoder.decode(audio_message.opus_data, _AUDIO_FRAME_SIZE)
+                    decoded_audio = await asyncio.to_thread(self._decoder.decode, audio_message.opus_data, _AUDIO_FRAME_SIZE)
                 except OpusError:
                     logger.error("An error occurred when decoding audio")
                     return None
@@ -197,7 +197,7 @@ class AudioHandler:
 
             if size > 0:
                 try:
-                    decoded_audio = self._decoder.decode(message[pos:pos + size], _AUDIO_FRAME_SIZE)
+                    decoded_audio = await asyncio.to_thread(self._decoder.decode, message[pos:pos + size], _AUDIO_FRAME_SIZE)
                 except OpusError:
                     logger.error("An error occurred when decoding audio")
                     return None
@@ -236,7 +236,7 @@ class AudioHandler:
                 audio_msg = MumbleUDP_pb2.Audio()
                 audio_msg.frame_number = sequence
                 audio_msg.is_terminator = not has_next
-                audio_msg.opus_data = self._encoder.encode(item.data, self._get_frame_samples())
+                audio_msg.opus_data = await asyncio.to_thread(self._encoder.encode, item.data, self._get_frame_samples())
                 if item.target is not None:
                     target_id = item.target.id
                     if target_id > 30 or target_id in {0, 1}:
@@ -270,7 +270,7 @@ class AudioHandler:
                     else:
                         target_id = msg_target_id
                 header = struct.pack("!B", AudioMessageType.OPUS.value << 5 | target_id)
-                audio_data = self._encoder.encode(item.data, self._get_frame_samples())
+                audio_data = await asyncio.to_thread(self._encoder.encode, item.data, self._get_frame_samples())
                 length = len(audio_data)
                 if not has_next:
                     length |= 0x2000
