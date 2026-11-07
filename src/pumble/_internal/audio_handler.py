@@ -169,7 +169,7 @@ class AudioHandler:
                 audio_msg = MumbleUDP_pb2.Audio()
                 audio_msg.frame_number = sequence
                 audio_msg.is_terminator = not has_next
-                audio_msg.opus_data = self._encoder.encode(item.data, len(item.data) // _AUDIO_CHANNELS)
+                audio_msg.opus_data = self._encoder.encode(item.data, len(item.data) // (2 * _AUDIO_CHANNELS))
                 if item.target is not None:
                     target_id = item.target.id
                     if target_id > 30 or target_id in {0, 1}:
@@ -197,7 +197,7 @@ class AudioHandler:
                     else:
                         target_id = msg_target_id
                 header = struct.pack("!B", AudioMessageType.OPUS.value << 5 | target_id)
-                audio_data = self._encoder.encode(item.data, len(item.data) // _AUDIO_CHANNELS)
+                audio_data = self._encoder.encode(item.data, len(item.data) // (2 * _AUDIO_CHANNELS))
                 length = len(audio_data)
                 if not has_next:
                     length |= 0x2000
