@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 from google.protobuf.message import Message
 
+from .audio_message_type import ProtobufAudioMessageType
+
 
 class AudioConnection(ABC):
     @abstractmethod
@@ -19,4 +21,4 @@ class AudioConnection(ABC):
         :param data: Protobuf audio message
         :type data: google.protobuf.message.Message
         """
-        await self.send_audio(data.SerializeToString())
+        await self.send_audio(ProtobufAudioMessageType.AUDIO.value.to_bytes(1, byteorder="big") + data.SerializeToString())
