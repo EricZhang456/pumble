@@ -3,6 +3,7 @@
 import asyncio
 import struct
 import contextlib
+import datetime
 
 from opuslib import Decoder, Encoder
 from opuslib.exceptions import OpusError
@@ -12,9 +13,9 @@ from .._proto import MumbleUDP_pb2 # pylint: disable=no-name-in-module
 from .varint import VarInt
 from .user_manager import UserManager
 from .audio_message_type import AudioMessageType, ProtobufAudioMessageType
-from ..audio_msgs import ProtobufAudioTarget, Position, AudioStream
+from ..audio_msgs import ProtobufAudioTarget, Position, AudioStream, OutgoingAudioFrame
 from .audio_connection import AudioConnection
-from .utils import UINT64_MAX, INT32_MAX, lookahead_async
+from .utils import UINT64_MAX, INT32_MAX
 
 
 _AUDIO_FRAME_SIZE = 4096
@@ -30,6 +31,7 @@ class AudioHandler:
         self._audio_lock = asyncio.Lock()
         self._protobuf_audio = False
         self._audio_connection = None
+        self._frame_duration = datetime.timedelta(milliseconds=20)
 
 
     def use_protobuf_audio(self, value: bool):
@@ -38,6 +40,65 @@ class AudioHandler:
 
     def set_audio_connection(self, conn: AudioConnection):
         self._audio_connection = conn
+
+
+    def set_frame_duration(self, millisec: int | datetime.timedelta):
+        if isinstance(millisec, int):
+            self._frame_duration = datetime.timedelta(milliseconds=millisec)
+        elif isinstance(millisec, datetime.timedelta):
+            self._frame_duration = millisec
+        else:
+            raise TypeError("Invalid type passed to set_frame_duration")
+
+
+    def _get_frame_samples(self):
+        return int(_AUDIO_SAMPLING_RATE * self._frame_duration.total_seconds())
+
+
+    def _get_frame_bytes(self):
+        return self._get_frame_samples() * _AUDIO_CHANNELS * 2
+
+
+    async def _iter_audio_frames(self, stream: AudioStream):
+        frame_bytes = self._get_frame_bytes()
+        buffer = bytearray()
+        pending_frame = None
+        position = None
+        target = None
+
+        async for item in stream:
+            buffer.extend(item.data)
+            while len(buffer) >= frame_bytes:
+                frame = bytes(buffer[:frame_bytes])
+                del buffer[:frame_bytes]
+
+                current_frame = OutgoingAudioFrame(
+                    data=frame,
+                    position=item.position,
+                    target=item.target,
+                )
+                if pending_frame is not None:
+                    yield pending_frame, True
+                pending_frame = current_frame
+
+            position = item.position
+            target = item.target
+
+        if len(buffer) % (2 * _AUDIO_CHANNELS):
+            raise ValueError("PCM stream ended with an incomplete audio sample")
+
+        if buffer:
+            buffer.extend(bytes(frame_bytes - len(buffer)))
+            if pending_frame is not None:
+                yield pending_frame, True
+            pending_frame = OutgoingAudioFrame(
+                data=bytes(buffer),
+                position=position,
+                target=target,
+            )
+
+        if pending_frame is not None:
+            yield pending_frame, False
 
 
     async def read_audio(self, message: bytes):
@@ -165,13 +226,17 @@ class AudioHandler:
 
 
     async def _send_audio_protobuf(self, stream: AudioStream):
+        loop = asyncio.get_running_loop()
+        frame_duration = self._frame_duration.total_seconds()
         async with self._audio_lock:
             sequence = 0
-            async for item, has_next in lookahead_async(stream):
+            next_frame_time = loop.time()
+            async for item, has_next in self._iter_audio_frames(stream):
+                await asyncio.sleep(max(0, next_frame_time - loop.time()))
                 audio_msg = MumbleUDP_pb2.Audio()
                 audio_msg.frame_number = sequence
                 audio_msg.is_terminator = not has_next
-                audio_msg.opus_data = self._encoder.encode(item.data, len(item.data) // (2 * _AUDIO_CHANNELS))
+                audio_msg.opus_data = self._encoder.encode(item.data, self._get_frame_samples())
                 if item.target is not None:
                     target_id = item.target.id
                     if target_id > 30 or target_id in {0, 1}:
@@ -185,12 +250,18 @@ class AudioHandler:
                     audio_msg.positional_data.extend((item.position.x, item.position.y, item.position.z))
                 sequence = (sequence + 1) % UINT64_MAX
                 await self._audio_connection.send_protobuf_audio(audio_msg)
+                next_frame_time += frame_duration
+                next_frame_time = max(next_frame_time, loop.time())
 
 
     async def _send_audio_legacy(self, stream: AudioStream):
+        loop = asyncio.get_running_loop()
+        frame_duration = self._frame_duration.total_seconds()
         async with self._audio_lock:
             sequence = 0
-            async for item, has_next in lookahead_async(stream):
+            next_frame_time = loop.time()
+            async for item, has_next in self._iter_audio_frames(stream):
+                await asyncio.sleep(max(0, next_frame_time - loop.time()))
                 target_id = 0
                 if item.target is not None:
                     msg_target_id = item.target.id
@@ -199,7 +270,7 @@ class AudioHandler:
                     else:
                         target_id = msg_target_id
                 header = struct.pack("!B", AudioMessageType.OPUS.value << 5 | target_id)
-                audio_data = self._encoder.encode(item.data, len(item.data) // (2 * _AUDIO_CHANNELS))
+                audio_data = self._encoder.encode(item.data, self._get_frame_samples())
                 length = len(audio_data)
                 if not has_next:
                     length |= 0x2000
@@ -209,3 +280,5 @@ class AudioHandler:
                     payload += struct.pack("fff", item.position.x, item.position.y, item.position.z)
                 await self._audio_connection.send_audio(payload)
                 sequence = (sequence + 1) % INT32_MAX
+                next_frame_time += frame_duration
+                next_frame_time = max(next_frame_time, loop.time())

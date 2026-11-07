@@ -35,7 +35,7 @@ def user_to_session_id(user_manager: UserManager, user: User | int):
         if not user_manager.is_user_available(user):
             raise ValueError(f"Session ID {user.session_id} is not available")
         return user.session_id
-    raise ValueError("Invalid user type passed to user_to_session_id")
+    raise TypeError("Invalid user type passed to user_to_session_id")
 
 
 def channel_to_channel_id(channel_manager: ChannelManager, channel: Channel | int):
@@ -47,4 +47,4 @@ def channel_to_channel_id(channel_manager: ChannelManager, channel: Channel | in
         if not channel_manager.is_channel_available(channel):
             raise ValueError(f"Channel ID {channel.channel_id} is not available")
         return channel.channel_id
-    raise ValueError("Invalid channel type passed to channel_to_channel_id")
+    raise TypeError("Invalid channel type passed to channel_to_channel_id")

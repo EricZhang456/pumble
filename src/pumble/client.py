@@ -264,6 +264,10 @@ class MumbleClient:
         await self._tcp_connection.write_proto(message_protobuf)
 
 
+    def set_audio_frame_duration(self, millisec: int | datetime.timedelta):
+        self._audio_handler.set_frame_duration(millisec)
+
+
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     async def _read_packet_loop(self):
         while self._connected:
@@ -409,7 +413,6 @@ class MumbleClient:
                         target = []
                         for i in text_message_msg.session:
                             target.append(self._user_manager.find_user_by_session_id(i))
-                    print(text_message_msg.channel_id)
                     channels = []
                     if text_message_msg.channel_id:
                         for i in text_message_msg.channel_id:
