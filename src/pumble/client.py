@@ -252,6 +252,7 @@ class MumbleClient:
 
 
     async def send_audio(self, stream: AudioStream):
+        logger.debug("Sending audio stream")
         await self._audio_handler.send_audio(stream)
 
 
