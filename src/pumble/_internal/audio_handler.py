@@ -238,7 +238,6 @@ class AudioHandler:
             sequence = 0
             next_frame_time = loop.time()
             async for item, has_next in self._iter_audio_frames(stream):
-                await asyncio.sleep(max(0, next_frame_time - loop.time()))
                 audio_msg = MumbleUDP_pb2.Audio()
                 audio_msg.frame_number = sequence
                 audio_msg.is_terminator = not has_next
@@ -255,6 +254,7 @@ class AudioHandler:
                 if item.position is not None:
                     audio_msg.positional_data.extend((item.position.x, item.position.y, item.position.z))
                 sequence = (sequence + 1) % UINT64_MAX
+                await asyncio.sleep(max(0, next_frame_time - loop.time()))
                 await self._audio_connection.send_protobuf_audio(audio_msg)
                 next_frame_time += frame_duration
                 next_frame_time = max(next_frame_time, loop.time())
