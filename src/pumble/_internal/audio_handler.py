@@ -267,7 +267,6 @@ class AudioHandler:
             sequence = 0
             next_frame_time = loop.time()
             async for item, has_next in self._iter_audio_frames(stream):
-                await asyncio.sleep(max(0, next_frame_time - loop.time()))
                 target_id = 0
                 if item.target is not None:
                     msg_target_id = item.target.id
@@ -281,9 +280,10 @@ class AudioHandler:
                 if not has_next:
                     length |= 0x2000
                 length_varint = VarInt(length).encode()
-                payload = header + length_varint + audio_data
+                payload = header + VarInt(sequence).encode() + length_varint + audio_data
                 if item.position is not None:
                     payload += struct.pack("fff", item.position.x, item.position.y, item.position.z)
+                await asyncio.sleep(max(0, next_frame_time - loop.time()))
                 await self._audio_connection.send_audio(payload)
                 sequence = (sequence + 1) % INT32_MAX
                 next_frame_time += frame_duration
