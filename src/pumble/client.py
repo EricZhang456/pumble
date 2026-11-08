@@ -112,6 +112,26 @@ class MumbleClient:
         return None
 
 
+    @property
+    def frame_duration(self):
+        return self._audio_handler.frame_duration
+
+
+    @frame_duration.setter
+    def frame_duration(self, value):
+        self._audio_handler.frame_duration = value
+
+
+    @property
+    def frame_samples(self):
+        return self._audio_handler.get_frame_samples()
+
+
+    @property
+    def frame_bytes(self):
+        return self._audio_handler.get_frame_bytes()
+
+
     def _clear_server_fields(self):
         self._server_info = None
         self._session_id = None
@@ -245,7 +265,7 @@ class MumbleClient:
                 if inspect.iscoroutinefunction(listener):
                     asyncio.create_task(listener(*call_args, **call_kwargs))
                 else:
-                    await asyncio.to_thread(listener, *call_args, **call_kwargs)
+                    asyncio.create_task(asyncio.to_thread(listener, *call_args, **call_kwargs))
             # pylint: disable=bare-except
             except:
                 logger.exception("An exception occurred when processing %s event listeners", event_name)
@@ -262,10 +282,6 @@ class MumbleClient:
             logger.debug("Sending %s Pumble message", type(message).__name__)
             logger.debug("Dispatching %s message to Mumble server", type(message_protobuf).__name__)
         await self._tcp_connection.write_proto(message_protobuf)
-
-
-    def set_audio_frame_duration(self, millisec: int | datetime.timedelta):
-        self._audio_handler.set_frame_duration(millisec)
 
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements

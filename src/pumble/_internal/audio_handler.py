@@ -42,25 +42,31 @@ class AudioHandler:
         self._audio_connection = conn
 
 
-    def set_frame_duration(self, millisec: int | datetime.timedelta):
-        if isinstance(millisec, int):
-            self._frame_duration = datetime.timedelta(milliseconds=millisec)
-        elif isinstance(millisec, datetime.timedelta):
-            self._frame_duration = millisec
+    @property
+    def frame_duration(self):
+        return self._frame_duration
+
+
+    @frame_duration.setter
+    def frame_duration(self, value: int | datetime.timedelta):
+        if isinstance(value, int):
+            self._frame_duration = datetime.timedelta(milliseconds=value)
+        elif isinstance(value, datetime.timedelta):
+            self._frame_duration = value
         else:
-            raise TypeError("Invalid type passed to set_frame_duration")
+            raise TypeError("Invalid type passed to frame_duration setter")
 
 
-    def _get_frame_samples(self):
+    def get_frame_samples(self):
         return int(_AUDIO_SAMPLING_RATE * self._frame_duration.total_seconds())
 
 
-    def _get_frame_bytes(self):
-        return self._get_frame_samples() * _AUDIO_CHANNELS * 2
+    def get_frame_bytes(self):
+        return self.get_frame_samples() * _AUDIO_CHANNELS * 2
 
 
     async def _iter_audio_frames(self, stream: AudioStream):
-        frame_bytes = self._get_frame_bytes()
+        frame_bytes = self.get_frame_bytes()
         buffer = bytearray()
         pending_frame = None
         position = None
@@ -236,7 +242,7 @@ class AudioHandler:
                 audio_msg = MumbleUDP_pb2.Audio()
                 audio_msg.frame_number = sequence
                 audio_msg.is_terminator = not has_next
-                audio_msg.opus_data = await asyncio.to_thread(self._encoder.encode, item.data, self._get_frame_samples())
+                audio_msg.opus_data = await asyncio.to_thread(self._encoder.encode, item.data, self.get_frame_samples())
                 if item.target is not None:
                     target_id = item.target.id
                     if target_id > 30 or target_id in {0, 1}:
@@ -270,7 +276,7 @@ class AudioHandler:
                     else:
                         target_id = msg_target_id
                 header = struct.pack("!B", AudioMessageType.OPUS.value << 5 | target_id)
-                audio_data = await asyncio.to_thread(self._encoder.encode, item.data, self._get_frame_samples())
+                audio_data = await asyncio.to_thread(self._encoder.encode, item.data, self.get_frame_samples())
                 length = len(audio_data)
                 if not has_next:
                     length |= 0x2000
