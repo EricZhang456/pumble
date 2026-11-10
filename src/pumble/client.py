@@ -267,8 +267,8 @@ class MumbleClient:
                     asyncio.create_task(listener(*call_args, **call_kwargs))
                 else:
                     asyncio.create_task(asyncio.to_thread(listener, *call_args, **call_kwargs))
-            # pylint: disable=bare-except
-            except:
+            # pylint: disable=broad-exception-caught
+            except Exception:
                 logger.exception("An exception occurred when processing %s event listeners", event_name)
 
 
