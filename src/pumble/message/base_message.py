@@ -14,5 +14,5 @@ class BaseMessage(ABC):
         """Convert the message to a Mumble control Protobuf message.
 
         :param client: MumbleClient instance to convert the message for.
-        :type client: MumbleClient
+        :type client: A weakref proxy to MumbleClient
         """

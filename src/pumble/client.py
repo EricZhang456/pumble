@@ -4,6 +4,7 @@ import datetime
 import platform
 import inspect
 import logging
+import weakref
 from statistics import variance
 from collections.abc import Iterable, Callable
 from typing import Literal, TypeAlias, List, get_args
@@ -277,7 +278,7 @@ class MumbleClient:
 
 
     async def send_message(self, message: BaseMessage):
-        message_protobuf = message.to_mumble_message(self)
+        message_protobuf = message.to_mumble_message(weakref.proxy(self))
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Sending %s Pumble message", type(message).__name__)
             logger.debug("Dispatching %s message to Mumble server", type(message_protobuf).__name__)
